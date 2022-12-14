@@ -20,8 +20,7 @@ module.exports = {
       },
       {
         test: /\.(frag|vert)$/,
-        use: "raw-loader",
-        // use: "asset/source",
+        type: "asset/source",
       },
     ],
   },
