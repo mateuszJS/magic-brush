@@ -22,6 +22,10 @@ module.exports = {
         test: /\.(frag|vert)$/,
         type: "asset/source",
       },
+      {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"],
+      },
     ],
   },
   output: {

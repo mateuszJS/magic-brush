@@ -1,52 +1,28 @@
+import "./styles.css";
 import vertexShaderSource from "./index.vert";
 import fragmentShaderSource from "./index.frag";
+import compileShader from "./utils/WebGL/compileShader";
+import createProgram from "./utils/WebGL/createProgram";
+import createFullFrameCanvas from "./utils/createFullFrameCanvas";
 
-var canvas = document.createElement<"canvas">("canvas");
-document.body.appendChild(canvas);
-var gl = canvas.getContext("webgl");
+const gl = createFullFrameCanvas();
+const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+const fragmentShader = compileShader(
+  gl,
+  gl.FRAGMENT_SHADER,
+  fragmentShaderSource
+);
 
-function createShader(
-  gl: WebGLRenderingContext,
-  type: typeof gl.VERTEX_SHADER | typeof gl.FRAGMENT_SHADER,
-  source: string
-) {
-  var shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (success) {
-    return shader;
-  }
+const program = createProgram(gl, vertexShader, fragmentShader);
 
-  console.log(gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
-}
+const resolutionUniformLocation = gl.getUniformLocation(
+  program,
+  "u_resolution"
+);
+const colorUniformLocation = gl.getUniformLocation(program, "u_color");
 
-var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-
-function createProgram(
-  gl: WebGLRenderingContext,
-  vertexShader: WebGLShader,
-  fragmentShader: WebGLShader
-) {
-  var program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return program;
-  }
-
-  console.log(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
-}
-
-var program = createProgram(gl, vertexShader, fragmentShader);
-
-var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-var positionBuffer = gl.createBuffer();
+const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+const positionBuffer = gl.createBuffer();
 
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 /*
@@ -57,29 +33,9 @@ So, let's bind the position buffer.
 */
 
 // three 2d points
-var positions = [0, 0, 0, 0.5, 0.7, 0];
+var positions = [10, 20, 80, 20, 10, 30, 10, 30, 80, 20, 80, 30];
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 //gl.STATIC_DRAW tells WebGL we are not likely to change this data much. - optimization reasons
-
-function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
-  // Lookup the size the browser is displaying the canvas in CSS pixels.
-  const displayWidth = canvas.clientWidth;
-  const displayHeight = canvas.clientHeight;
-
-  // Check if the canvas is not the same size.
-  const needResize =
-    canvas.width !== displayWidth || canvas.height !== displayHeight;
-
-  if (needResize) {
-    // Make the canvas the same size
-    canvas.width = displayWidth;
-    canvas.height = displayHeight;
-  }
-
-  return needResize;
-}
-
-resizeCanvasToDisplaySize(canvas);
 
 /*
 We need to tell WebGL how to convert from the clip space values
@@ -93,6 +49,9 @@ gl.clearColor(0, 0, 0, 0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
 gl.useProgram(program);
+
+gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+gl.uniform4f(colorUniformLocation, 0, 0.8, 0.4, 1);
 
 gl.enableVertexAttribArray(positionAttributeLocation);
 
@@ -123,5 +82,5 @@ The attribute will continue to use positionBuffer.
 
 var primitiveType = gl.TRIANGLES;
 var offset = 0;
-var count = 3;
+var count = 6;
 gl.drawArrays(primitiveType, offset, count);
