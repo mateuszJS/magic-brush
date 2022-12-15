@@ -1,6 +1,6 @@
 export default class Attribute {
   private location: number;
-  private positionBuffer: WebGLBuffer;
+  private bufferAddress: WebGLBuffer;
 
   constructor(
     private gl: WebGLRenderingContext,
@@ -8,13 +8,13 @@ export default class Attribute {
     private name: string
   ) {
     this.location = gl.getAttribLocation(program, name);
-    this.positionBuffer = gl.createBuffer();
+    this.bufferAddress = gl.createBuffer();
   }
 
   set(value: number[]) {
     this.gl.enableVertexAttribArray(this.location);
 
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferAddress);
 
     this.gl.vertexAttribPointer(
       this.location,

@@ -9,7 +9,7 @@ module.exports = {
     static: "./dist",
   },
   resolve: {
-    extensions: [".ts", ".js", ".frag", ".vert"],
+    extensions: [".ts", ".js", ".frag", ".vert", ".png", ".mp4"],
   },
   module: {
     rules: [
@@ -25,6 +25,10 @@ module.exports = {
       {
         test: /\.css$/,
         use: ["style-loader", "css-loader"],
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif|mp4)$/,
+        type: "asset/resource",
       },
     ],
   },
