@@ -8,8 +8,11 @@ import * as m3 from "./utils/m3";
 import uVec4 from "./models/UVec4";
 import uMat3 from "./models/UMat3";
 import Attribute from "./models/Attribute";
+import initControlPanel from "./utils/ui/initControlPanel";
 
-const gl = createFullFrameCanvas();
+const canvasNode = createFullFrameCanvas();
+initControlPanel(canvasNode);
+const gl = canvasNode.getContext("webgl");
 const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 const fragmentShader = compileShader(
   gl,

@@ -7,6 +7,9 @@
   "author": "mateuszJS <mate.walendzik@gmail.com>",
   "license": "MIT",
   "private": false,
+  "engines": {
+    "node": ">=16.3.0"
+  },
   "scripts": {
     "start": "webpack serve --open",
     "build": "webpack"

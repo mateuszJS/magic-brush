@@ -12,5 +12,5 @@ export default function createFullFrameCanvas() {
 
   resizeCanvas();
 
-  return canvas.getContext("webgl");
+  return canvas;
 }
