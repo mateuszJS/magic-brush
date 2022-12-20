@@ -15,8 +15,8 @@ export default function captureStreamFromCanvas(canvasNode: HTMLCanvasElement) {
 
 function finishCapturing(e: MediaRecorderEventMap["dataavailable"]) {
   var videoData = [e.data];
-  var blob = new Blob(videoData, { type: "video/mp4" });
-  // var blob = new Blob(videoData, { type: "video/webm" });
+  // var blob = new Blob(videoData, { type: "video/mp4" });
+  var blob = new Blob(videoData, { type: "video/webm" });
   var blobURL = URL.createObjectURL(blob);
   saveData(blobURL);
   // video.src = videoURL;

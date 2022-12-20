@@ -39,10 +39,14 @@ function render(img: HTMLImageElement | HTMLVideoElement) {
   const program = createProgram(gl, vertexShader, fragmentShader);
   // const colorUniform = new uVec4(gl, program, "u_color");
   const matrixUniform = new uMat3(gl, program, "u_matrix");
+  const shiftUniform = new UVec2(gl, program, "u_shift");
   const positionAttribute = new Attribute(gl, program, "a_position");
   const texCoordAttribute = new Attribute(gl, program, "a_texCoord");
   const lenaTexture = new Texture(gl, img);
   const textureSizeUniform = new UVec2(gl, program, "u_textureSize");
+
+  const imgWidth = 1000 || img.width;
+  const imgHeight = 600 || img.height;
 
   function drawScene(now: DOMHighResTimeStamp) {
     now *= 0.001; // convert to seconds
@@ -70,9 +74,7 @@ function render(img: HTMLImageElement | HTMLVideoElement) {
     // const y = Math.sin(angle) * radius;
     // const centerX = gl.canvas.width / 2;
     // const centerY = gl.canvas.height / 2;
-    positionAttribute.set(
-      getRectangle(gl, 0, 0, 1000 || img.width, 600 || img.height)
-    );
+    positionAttribute.set(getRectangle(gl, 0, 0, imgWidth, imgHeight));
 
     // positionAttribute.set([centerX + x, centerY + y, centerX - x, centerY - y]);
 
@@ -81,8 +83,8 @@ function render(img: HTMLImageElement | HTMLVideoElement) {
 
     // Set the matrix.
     matrixUniform.set(projectionMatrix);
-
-    textureSizeUniform.set([img.width, img.height]);
+    shiftUniform.set([Math.sin(now * 2), Math.cos(now * 2)]);
+    textureSizeUniform.set([imgWidth, imgHeight]);
 
     // Draw in red
     // colorUniform.set([1, 0, 0, 1]);
