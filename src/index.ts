@@ -14,6 +14,12 @@ import Texture from "./models/Texture";
 import UVec2 from "./models/UVec2";
 import plasmaVideo from "./assets/plasma.mp4";
 import setupVideo from "./utils/setupVideo";
+import TextureSolidFill from "./models/TextureSolidFill";
+
+const SIZE = 256;
+let dt = 1;
+const diffusion = 0;
+const viscosity = 0;
 
 function main() {
   // const image = new Image();
@@ -26,7 +32,7 @@ function main() {
 }
 
 function render(img: HTMLImageElement | HTMLVideoElement) {
-  const canvasNode = createFullFrameCanvas();
+  const canvasNode = createFullFrameCanvas(SIZE, SIZE);
   initControlPanel(canvasNode);
   const gl = canvasNode.getContext("webgl");
   const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
@@ -37,30 +43,41 @@ function render(img: HTMLImageElement | HTMLVideoElement) {
   );
 
   const program = createProgram(gl, vertexShader, fragmentShader);
-  // const colorUniform = new uVec4(gl, program, "u_color");
+  const colorUniform = new uVec4(gl, program, "u_color");
   const matrixUniform = new uMat3(gl, program, "u_matrix");
-  const shiftUniform = new UVec2(gl, program, "u_shift");
   const positionAttribute = new Attribute(gl, program, "a_position");
   const texCoordAttribute = new Attribute(gl, program, "a_texCoord");
-  const lenaTexture = new Texture(gl, img);
+  const lenaTexture = new Texture(gl, SIZE, SIZE);
+  const solidFillTexture = new TextureSolidFill(gl, SIZE, SIZE);
   const textureSizeUniform = new UVec2(gl, program, "u_textureSize");
 
-  const imgWidth = 1000 || img.width;
-  const imgHeight = 600 || img.height;
+  function setOutputToLenaTexture() {
+    lenaTexture.setAsOutput();
+    gl.bindTexture(gl.TEXTURE_2D, solidFillTexture.texture);
+    // render the cube with the texture we just rendered to
+  }
 
-  function drawScene(now: DOMHighResTimeStamp) {
-    now *= 0.001; // convert to seconds
+  function setOutputToCanvas() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    // render the cube with the texture we just rendered to
+    gl.bindTexture(gl.TEXTURE_2D, lenaTexture.texture);
 
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    // Clear the canvas.
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    // Clear the canvas AND the depth buffer.
+    gl.clearColor(1, 1, 1, 1); // clear to white
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  }
+  let time = 0;
+  function drawScene(now: DOMHighResTimeStamp) {
+    now *= 0.001; // convert to seconds
 
     // Tell it to use our program (pair of shaders)
     gl.useProgram(program);
 
-    lenaTexture.update();
+    // lenaTexture.update();
 
     // provide texture coordinates for the rectangle.
     texCoordAttribute.set([
@@ -74,18 +91,32 @@ function render(img: HTMLImageElement | HTMLVideoElement) {
     // const y = Math.sin(angle) * radius;
     // const centerX = gl.canvas.width / 2;
     // const centerY = gl.canvas.height / 2;
-    positionAttribute.set(getRectangle(gl, 0, 0, imgWidth, imgHeight));
+
+    // if (time === 0) {
+    positionAttribute.set(
+      getRectangle(gl, SIZE / 3, SIZE / 3, SIZE / 3, SIZE / 3)
+    );
+    // } else {
+    //   positionAttribute.set(
+    //     getRectangle(gl, SIZE / 3, SIZE / 3, SIZE / 3, SIZE / 3)
+    //   );
+    // }
 
     // positionAttribute.set([centerX + x, centerY + y, centerX - x, centerY - y]);
 
     // Compute the matrices
-    const projectionMatrix = m3.projection(gl.canvas.width, gl.canvas.height);
+    const projectionMatrix = m3.projection(SIZE, SIZE);
+    // const projectionMatrix = m3.projection(gl.canvas.width, gl.canvas.height);
 
     // Set the matrix.
     matrixUniform.set(projectionMatrix);
-    shiftUniform.set([Math.sin(now * 2), Math.cos(now * 2)]);
-    textureSizeUniform.set([imgWidth, imgHeight]);
-
+    textureSizeUniform.set([SIZE, SIZE]);
+    if (time === 0) {
+      colorUniform.set([0, 0, 0, 255]);
+    } else {
+      colorUniform.set([0, 130, 0, 255]);
+    }
+    time++;
     // Draw in red
     // colorUniform.set([1, 0, 0, 1]);
 
@@ -100,9 +131,15 @@ function render(img: HTMLImageElement | HTMLVideoElement) {
     var count = 6;
     gl.drawArrays(primitiveType, offset, count);
 
-    requestAnimationFrame(drawScene);
+    // requestAnimationFrame(drawScene);
   }
+  setOutputToLenaTexture();
   requestAnimationFrame(drawScene);
+
+  setTimeout(() => {
+    setOutputToCanvas();
+    requestAnimationFrame(drawScene);
+  }, 0);
 }
 
 main();

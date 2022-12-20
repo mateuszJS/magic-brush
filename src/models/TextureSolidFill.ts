@@ -1,4 +1,4 @@
-export default class Texture {
+export default class TextureSolidFill {
   // private location: number;
   // private bufferAddress: WebGLBuffer;
   public texture: WebGLTexture;
@@ -17,7 +17,15 @@ export default class Texture {
     const border = 0;
     const format = gl.RGBA;
     const type = gl.UNSIGNED_BYTE;
-    const data: null = null;
+    const data: number[] = [];
+
+    for (let i = 0; i < width * height; i++) {
+      data.push(255);
+      data.push(0);
+      data.push(0);
+      data.push(255);
+    }
+
     gl.texImage2D(
       gl.TEXTURE_2D,
       level,
@@ -27,55 +35,13 @@ export default class Texture {
       border,
       format,
       type,
-      data
+      new Uint8Array(data)
     );
 
     // set the filtering so we don't need mips
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    // https://webglfundamentals.org/webgl/lessons/webgl-render-to-texture.html
-
-    // Create and bind the framebuffer
-    this.frameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-
-    // attach the texture as the first color attachment
-    const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      attachmentPoint,
-      gl.TEXTURE_2D,
-      this.texture,
-      level
-    );
-  }
-
-  setAsOutput() {
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
-
-    // render cube with our 3x2 texture
-    // this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-
-    // Tell WebGL how to convert from clip space to pixels
-    this.gl.viewport(0, 0, this.width, this.height);
-
-    // Clear the attachment(s).
-    this.gl.clearColor(0, 0, 1, 1); // clear to blue
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-  }
-
-  update() {
-    // this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-    // this.gl.texImage2D(
-    //   this.gl.TEXTURE_2D,
-    //   0,
-    //   this.gl.RGBA,
-    //   this.gl.RGBA,
-    //   this.gl.UNSIGNED_BYTE
-    //   // this.img
-    // );
   }
 
   set(value: number[]) {
