@@ -4,11 +4,19 @@ export default class Attribute {
 
   constructor(
     private gl: WebGLRenderingContext,
-    private program: WebGLProgram,
-    private name: string
+    program: WebGLProgram,
+    name: string
   ) {
     this.location = gl.getAttribLocation(program, name);
-    this.bufferAddress = gl.createBuffer();
+    const bufferAddress = gl.createBuffer();
+
+    if (!bufferAddress) {
+      throw Error(
+        "gl.getUniformLocation return null! Probably WebGL context is lost!"
+      );
+    }
+
+    this.bufferAddress = bufferAddress;
   }
 
   set(value: number[]) {

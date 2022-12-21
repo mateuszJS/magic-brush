@@ -18,7 +18,7 @@ declare module "*.mp4" {
   export default content;
 }
 
-type Array9Len = [
+type Matrix3 = [
   number,
   number,
   number,
@@ -29,3 +29,5 @@ type Array9Len = [
   number,
   number
 ];
+
+type Uint8Pixel = [number, number, number, number];

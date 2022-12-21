@@ -38,8 +38,7 @@ export default function initControlPanel(canvasNode: HTMLCanvasElement) {
   window.stopRecordBtn.addEventListener("click", () => {
     window.startRecordBtn.classList.add("visible");
     window.stopRecordBtn.classList.remove("visible");
-    console.log(stopRecordingCallback);
-    stopRecordingCallback();
+    stopRecordingCallback?.();
     stopRecordingCallback = null;
   });
 }

@@ -10,7 +10,8 @@
 attribute vec2 a_position;
 attribute vec2 a_texCoord;
 varying vec2 v_texCoord;
- uniform mat3 u_matrix;
+uniform mat3 u_matrix;
+
 void main() {
    // pass the texCoord to the fragment shader
    // The GPU will interpolate this value between points

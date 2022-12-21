@@ -10,6 +10,7 @@ module.exports = {
   },
   resolve: {
     extensions: [".ts", ".js", ".frag", ".vert", ".png", ".mp4"],
+    modules: [path.resolve(__dirname, "src"), "node_modules"], // to use absolute path in src
   },
   module: {
     rules: [

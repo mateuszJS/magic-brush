@@ -1,84 +1,63 @@
-// let MatType = Float32Array;
-// dst: Vector = new MatType(9)
-type Vector = Array9Len; // | Float32Array;
-// we just keeping Vector in case we would need to support Float32Array
-function getArray9Len(): Array9Len {
-  return [0, 0, 0, 0, 0, 0, 0, 0, 0];
+export function multiply(a: Matrix3, b: Matrix3): Matrix3 {
+  const a00 = a[0 * 3 + 0];
+  const a01 = a[0 * 3 + 1];
+  const a02 = a[0 * 3 + 2];
+  const a10 = a[1 * 3 + 0];
+  const a11 = a[1 * 3 + 1];
+  const a12 = a[1 * 3 + 2];
+  const a20 = a[2 * 3 + 0];
+  const a21 = a[2 * 3 + 1];
+  const a22 = a[2 * 3 + 2];
+  const b00 = b[0 * 3 + 0];
+  const b01 = b[0 * 3 + 1];
+  const b02 = b[0 * 3 + 2];
+  const b10 = b[1 * 3 + 0];
+  const b11 = b[1 * 3 + 1];
+  const b12 = b[1 * 3 + 2];
+  const b20 = b[2 * 3 + 0];
+  const b21 = b[2 * 3 + 1];
+  const b22 = b[2 * 3 + 2];
+
+  return [
+    b00 * a00 + b01 * a10 + b02 * a20,
+    b00 * a01 + b01 * a11 + b02 * a21,
+    b00 * a02 + b01 * a12 + b02 * a22,
+    b10 * a00 + b11 * a10 + b12 * a20,
+    b10 * a01 + b11 * a11 + b12 * a21,
+    b10 * a02 + b11 * a12 + b12 * a22,
+    b20 * a00 + b21 * a10 + b22 * a20,
+    b20 * a01 + b21 * a11 + b22 * a21,
+    b20 * a02 + b21 * a12 + b22 * a22,
+  ];
 }
 
-export function multiply(a: Vector, b: Vector, dst: Vector = getArray9Len()) {
-  var a00 = a[0 * 3 + 0];
-  var a01 = a[0 * 3 + 1];
-  var a02 = a[0 * 3 + 2];
-  var a10 = a[1 * 3 + 0];
-  var a11 = a[1 * 3 + 1];
-  var a12 = a[1 * 3 + 2];
-  var a20 = a[2 * 3 + 0];
-  var a21 = a[2 * 3 + 1];
-  var a22 = a[2 * 3 + 2];
-  var b00 = b[0 * 3 + 0];
-  var b01 = b[0 * 3 + 1];
-  var b02 = b[0 * 3 + 2];
-  var b10 = b[1 * 3 + 0];
-  var b11 = b[1 * 3 + 1];
-  var b12 = b[1 * 3 + 2];
-  var b20 = b[2 * 3 + 0];
-  var b21 = b[2 * 3 + 1];
-  var b22 = b[2 * 3 + 2];
-
-  dst[0] = b00 * a00 + b01 * a10 + b02 * a20;
-  dst[1] = b00 * a01 + b01 * a11 + b02 * a21;
-  dst[2] = b00 * a02 + b01 * a12 + b02 * a22;
-  dst[3] = b10 * a00 + b11 * a10 + b12 * a20;
-  dst[4] = b10 * a01 + b11 * a11 + b12 * a21;
-  dst[5] = b10 * a02 + b11 * a12 + b12 * a22;
-  dst[6] = b20 * a00 + b21 * a10 + b22 * a20;
-  dst[7] = b20 * a01 + b21 * a11 + b22 * a21;
-  dst[8] = b20 * a02 + b21 * a12 + b22 * a22;
-
-  return dst;
-}
-
-export function identity(dst: Vector = getArray9Len()) {
-  dst[0] = 1;
-  dst[1] = 0;
-  dst[2] = 0;
-  dst[3] = 0;
-  dst[4] = 1;
-  dst[5] = 0;
-  dst[6] = 0;
-  dst[7] = 0;
-  dst[8] = 1;
-
-  return dst;
+export function identity(): Matrix3 {
+  return [1, 0, 0, 0, 1, 0, 0, 0, 1];
 }
 
 /**
  * Creates a 2D projection matrix
  * @param {number} width width in pixels
  * @param {number} height height in pixels
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
  * @return {module:webgl-2d-math.Matrix3} a projection matrix that converts from pixels to clipspace with Y = 0 at the top.
  * @memberOf module:webgl-2d-math
  */
-export function projection(
-  width: number,
-  height: number,
-  dst: Vector = getArray9Len()
-) {
+export function projection(width: number, height: number): Matrix3 {
+  // https://webglfundamentals.org/webgl/lessons/webgl-2d-matrices.html
+  return [2 / width, 0, 0, 0, 2 / height, 0, -1, -1, 1];
+}
+
+/**
+ * Creates a 2D projection matrix
+ * @param {number} width width in pixels
+ * @param {number} height height in pixels
+ * @return {module:webgl-2d-math.Matrix3} a projection matrix that converts from pixels to clipspace with Y = 0 at the top.
+ * @memberOf module:webgl-2d-math
+ */
+export function projectionFlipY(width: number, height: number): Matrix3 {
+  // https://webglfundamentals.org/webgl/lessons/webgl-2d-matrices.html
   // Note: This matrix flips the Y axis so 0 is at the top.
-
-  dst[0] = 2 / width;
-  dst[1] = 0;
-  dst[2] = 0;
-  dst[3] = 0;
-  dst[4] = -2 / height;
-  dst[5] = 0;
-  dst[6] = -1;
-  dst[7] = 1;
-  dst[8] = 1;
-
-  return dst;
+  return [2 / width, 0, 0, 0, -2 / height, 0, -1, 1, 1];
 }
 
 /**
@@ -86,17 +65,15 @@ export function projection(
  * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
  * @param {number} width width in pixels
  * @param {number} height height in pixels
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function project(
-  m: Vector,
+export function projectFlipY(
+  m: Matrix3,
   width: number,
-  height: number,
-  dst?: Vector
-) {
-  return multiply(m, projection(width, height), dst);
+  height: number
+): Matrix3 {
+  return multiply(m, projectionFlipY(width, height));
 }
 
 /**
@@ -107,22 +84,8 @@ export function project(
  * @return {module:webgl-2d-math.Matrix3} a translation matrix that translates by tx and ty.
  * @memberOf module:webgl-2d-math
  */
-export function translation(
-  tx: number,
-  ty: number,
-  dst: Vector = getArray9Len()
-) {
-  dst[0] = 1;
-  dst[1] = 0;
-  dst[2] = 0;
-  dst[3] = 0;
-  dst[4] = 1;
-  dst[5] = 0;
-  dst[6] = tx;
-  dst[7] = ty;
-  dst[8] = 1;
-
-  return dst;
+export function translation(tx: number, ty: number): Matrix3 {
+  return [1, 0, 0, 0, 1, 0, tx, ty, 1];
 }
 
 /**
@@ -130,48 +93,34 @@ export function translation(
  * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
  * @param {number} tx amount to translate in x
  * @param {number} ty amount to translate in y
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function translate(m: Vector, tx: number, ty: number, dst?: Vector) {
-  return multiply(m, translation(tx, ty), dst);
+export function translate(m: Matrix3, tx: number, ty: number) {
+  return multiply(m, translation(tx, ty));
 }
 
 /**
  * Creates a 2D rotation matrix
  * @param {number} angleInRadians amount to rotate in radians
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
  * @return {module:webgl-2d-math.Matrix3} a rotation matrix that rotates by angleInRadians
  * @memberOf module:webgl-2d-math
  */
-export function rotation(angleInRadians: number, dst: Vector = getArray9Len()) {
-  var c = Math.cos(angleInRadians);
-  var s = Math.sin(angleInRadians);
-
-  dst[0] = c;
-  dst[1] = -s;
-  dst[2] = 0;
-  dst[3] = s;
-  dst[4] = c;
-  dst[5] = 0;
-  dst[6] = 0;
-  dst[7] = 0;
-  dst[8] = 1;
-
-  return dst;
+export function rotation(angleInRadians: number): Matrix3 {
+  const c = Math.cos(angleInRadians);
+  const s = Math.sin(angleInRadians);
+  return [c, -s, 0, s, c, 0, 0, 0, 1];
 }
 
 /**
  * Multiplies by a 2D rotation matrix
  * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
  * @param {number} angleInRadians amount to rotate in radians
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function rotate(m: Vector, angleInRadians: number, dst?: Vector) {
-  return multiply(m, rotation(angleInRadians), dst);
+export function rotate(m: Matrix3, angleInRadians: number): Matrix3 {
+  return multiply(m, rotation(angleInRadians));
 }
 
 /**
@@ -182,18 +131,8 @@ export function rotate(m: Vector, angleInRadians: number, dst?: Vector) {
  * @return {module:webgl-2d-math.Matrix3} a scale matrix that scales by sx and sy.
  * @memberOf module:webgl-2d-math
  */
-export function scaling(sx: number, sy: number, dst: Vector = getArray9Len()) {
-  dst[0] = sx;
-  dst[1] = 0;
-  dst[2] = 0;
-  dst[3] = 0;
-  dst[4] = sy;
-  dst[5] = 0;
-  dst[6] = 0;
-  dst[7] = 0;
-  dst[8] = 1;
-
-  return dst;
+export function scaling(sx: number, sy: number): Matrix3 {
+  return [sx, 0, 0, 0, sy, 0, 0, 0, 1];
 }
 
 /**
@@ -201,17 +140,11 @@ export function scaling(sx: number, sy: number, dst: Vector = getArray9Len()) {
  * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
  * @param {number} sx amount to scale in x
  * @param {number} sy amount to scale in y
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function scale(
-  m: Vector,
-  sx: number,
-  sy: number,
-  dst: Vector = getArray9Len()
-) {
-  return multiply(m, scaling(sx, sy), dst);
+export function scale(m: Matrix3, sx: number, sy: number) {
+  return multiply(m, scaling(sx, sy));
 }
 
 export function dot(x1: number, y1: number, x2: number, y2: number) {
@@ -243,7 +176,7 @@ export function degToRad(d: number) {
   return (d * Math.PI) / 180;
 }
 
-export function transformPoint(m: Vector, v: Vector) {
+export function transformPoint(m: Matrix3, v: Matrix3) {
   var v0 = v[0];
   var v1 = v[1];
   var d = v0 * m[0 * 3 + 2] + v1 * m[1 * 3 + 2] + m[2 * 3 + 2];
@@ -253,7 +186,7 @@ export function transformPoint(m: Vector, v: Vector) {
   ];
 }
 
-export function inverse(m: Vector, dst: Vector = getArray9Len()) {
+export function inverse(m: Matrix3) {
   const m00 = m[0 * 3 + 0];
   const m01 = m[0 * 3 + 1];
   const m02 = m[0 * 3 + 2];
@@ -271,15 +204,15 @@ export function inverse(m: Vector, dst: Vector = getArray9Len()) {
   const det = m00 * b01 + m01 * b11 + m02 * b21;
   const invDet = 1.0 / det;
 
-  dst[0] = b01 * invDet;
-  dst[1] = (-m22 * m01 + m02 * m21) * invDet;
-  dst[2] = (m12 * m01 - m02 * m11) * invDet;
-  dst[3] = b11 * invDet;
-  dst[4] = (m22 * m00 - m02 * m20) * invDet;
-  dst[5] = (-m12 * m00 + m02 * m10) * invDet;
-  dst[6] = b21 * invDet;
-  dst[7] = (-m21 * m00 + m01 * m20) * invDet;
-  dst[8] = (m11 * m00 - m01 * m10) * invDet;
-
-  return dst;
+  return [
+    b01 * invDet,
+    (-m22 * m01 + m02 * m21) * invDet,
+    (m12 * m01 - m02 * m11) * invDet,
+    b11 * invDet,
+    (m22 * m00 - m02 * m20) * invDet,
+    (-m12 * m00 + m02 * m10) * invDet,
+    b21 * invDet,
+    (-m21 * m00 + m01 * m20) * invDet,
+    (m11 * m00 - m01 * m10) * invDet,
+  ];
 }

@@ -1,98 +1,151 @@
+function getFillData(length: number, color: [number, number, number, number]) {
+  return Uint8Array.from(
+    { length: length * 4 },
+    (_value, index) => color[index % 4]
+  );
+}
+
+type Source = Uint8Pixel | HTMLImageElement | HTMLVideoElement | null;
+
 export default class Texture {
-  // private location: number;
-  // private bufferAddress: WebGLBuffer;
-  public texture: WebGLTexture;
-  private frameBuffer: WebGLFramebuffer;
+  private texture: WebGLTexture;
+  // WebGL return null from create* methods when the context is lost
+  // https://www.khronos.org/webgl/public-mailing-list/public_webgl/1203/msg00086.php;
+  private frameBuffer: WebGLFramebuffer | null;
+  private level: number;
+  private htmlSource: HTMLImageElement | HTMLVideoElement | null;
 
   constructor(
     private gl: WebGLRenderingContext,
+    source: Source,
     private width: number,
     private height: number
   ) {
-    this.texture = gl.createTexture();
+    const newTexture = gl.createTexture();
+
+    if (!newTexture) {
+      throw Error(
+        "gl.createTexture return null! Probably WebGL context is lost"
+      );
+    }
+
+    this.texture = newTexture;
+    this.level = 0;
+    this.htmlSource = null;
+    this.frameBuffer = null;
+
+    if (Array.isArray(source)) {
+      // it's pixel value
+      this.updateWithColorFill(source);
+    } else if (source) {
+      this.htmlSource = source;
+      this.updateWithHTMLElement(source);
+    }
+  }
+
+  // source parameter is optional, in case of video we just need to update texture with already provided source,
+  // we don't need to provide a new source in video case
+  updateWithHTMLElement(htmlSource?: HTMLImageElement | HTMLVideoElement) {
+    const gl = this.gl;
+    if (htmlSource) {
+      this.htmlSource = htmlSource;
+    }
+
+    if (!this.htmlSource) {
+      throw Error("No image or video provided!");
+    }
+
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-    const level = 0;
-    const internalFormat = gl.RGBA;
-    const border = 0;
-    const format = gl.RGBA;
-    const type = gl.UNSIGNED_BYTE;
-    const data: null = null;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
     gl.texImage2D(
       gl.TEXTURE_2D,
-      level,
-      internalFormat,
-      width,
-      height,
-      border,
-      format,
-      type,
-      data
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      this.htmlSource
     );
+  }
+
+  updateWithColorFill(color: Uint8Pixel) {
+    // so far we do not support updating size of the texture
+    const gl = this.gl;
+
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
     // set the filtering so we don't need mips
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    // https://webglfundamentals.org/webgl/lessons/webgl-render-to-texture.html
-
-    // Create and bind the framebuffer
-    this.frameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-
-    // attach the texture as the first color attachment
-    const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      attachmentPoint,
+    gl.texImage2D(
       gl.TEXTURE_2D,
-      this.texture,
-      level
+      this.level,
+      gl.RGBA, // internal format,
+      this.width,
+      this.height,
+      0, // border,
+      gl.RGBA, // format,
+      gl.UNSIGNED_BYTE, // type,
+      getFillData(this.width * this.height, color)
     );
   }
 
+  getTexture() {
+    return this.texture;
+  }
+
   setAsOutput() {
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
+    const gl = this.gl;
+
+    // A renderbuffer is like a texture except it unlike a texture it can't be used as input to a shader. It can only be used as output.
+    // A framebuffer is a collection of textures and renderbuffers. When you want to render to a texture you attach one or more textures and renderbuffers to a framebuffer
+
+    if (!this.frameBuffer) {
+      // https://webglfundamentals.org/webgl/lessons/webgl-render-to-texture.html
+
+      // Create and bind the framebuffer
+      // frame buffers allow you to render to texture or renderbuffers
+      // frame buffer is a collection fo attachments
+      // by default WebGL has set frame buffer rendering to canvas
+      this.frameBuffer = gl.createFramebuffer();
+
+      if (!this.frameBuffer) {
+        throw Error(
+          "gl.createFramebuffer returns null! Probably WebGl context is lost!"
+        );
+      }
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+      // https://webglfundamentals.org/webgl/lessons/webgl-framebuffers.html
+
+      // to add an attachment you can use framebufferTexture2D or framebufferRenderbuffer
+      // depends if destination is a texture or render buffer
+      const attachmentPoint = gl.COLOR_ATTACHMENT0;
+      // we assume that texture is always pointing to primary created texture, you cannot change this pointer
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        attachmentPoint,
+        gl.TEXTURE_2D,
+        this.texture,
+        this.level
+      );
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 
     // render cube with our 3x2 texture
-    // this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+    // gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
     // Tell WebGL how to convert from clip space to pixels
-    this.gl.viewport(0, 0, this.width, this.height);
+    gl.viewport(0, 0, this.width, this.height);
 
     // Clear the attachment(s).
-    this.gl.clearColor(0, 0, 1, 1); // clear to blue
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-  }
-
-  update() {
-    // this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-    // this.gl.texImage2D(
-    //   this.gl.TEXTURE_2D,
-    //   0,
-    //   this.gl.RGBA,
-    //   this.gl.RGBA,
-    //   this.gl.UNSIGNED_BYTE
-    //   // this.img
-    // );
-  }
-
-  set(value: number[]) {
-    // this.gl.enableVertexAttribArray(this.location);
-    // this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferAddress);
-    // this.gl.vertexAttribPointer(
-    //   this.location,
-    //   2, // size, 2 components per iteration
-    //   this.gl.FLOAT, // type, the data is 32bit floats
-    //   false, // normalize, don't normalize the data
-    //   0, // stride, 0 = move forward size * sizeof(type) each iteration to get the next position
-    //   0 // offset, start at the beginning of the buffer
-    // );
-    // this.gl.bufferData(
-    //   this.gl.ARRAY_BUFFER,
-    //   new Float32Array(value),
-    //   this.gl.STATIC_DRAW
-    // );
+    gl.clearColor(0, 0, 0, 1); // clear to black
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   }
 }
