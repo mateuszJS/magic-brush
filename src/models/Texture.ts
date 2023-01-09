@@ -1,151 +1,164 @@
-function getFillData(length: number, color: [number, number, number, number]) {
-  return Uint8Array.from(
-    { length: length * 4 },
-    (_value, index) => color[index % 4]
-  );
-}
-
-type Source = Uint8Pixel | HTMLImageElement | HTMLVideoElement | null;
-
 export default class Texture {
-  private texture: WebGLTexture;
-  // WebGL return null from create* methods when the context is lost
-  // https://www.khronos.org/webgl/public-mailing-list/public_webgl/1203/msg00086.php;
-  private frameBuffer: WebGLFramebuffer | null;
-  private level: number;
-  private htmlSource: HTMLImageElement | HTMLVideoElement | null;
+  private _width?: number;
+  private _height?: number;
+  private aspect?: number;
+  readonly texture: WebGLTexture;
 
-  constructor(
-    private gl: WebGLRenderingContext,
-    source: Source,
-    private width: number,
-    private height: number
-  ) {
+  constructor(private gl: WebGL2RenderingContext) {
     const newTexture = gl.createTexture();
-
     if (!newTexture) {
       throw Error(
         "gl.createTexture return null! Probably WebGL context is lost"
       );
     }
-
     this.texture = newTexture;
-    this.level = 0;
-    this.htmlSource = null;
-    this.frameBuffer = null;
-
-    if (Array.isArray(source)) {
-      // it's pixel value
-      this.updateWithColorFill(source);
-    } else if (source) {
-      this.htmlSource = source;
-      this.updateWithHTMLElement(source);
-    }
-  }
-
-  // source parameter is optional, in case of video we just need to update texture with already provided source,
-  // we don't need to provide a new source in video case
-  updateWithHTMLElement(htmlSource?: HTMLImageElement | HTMLVideoElement) {
-    const gl = this.gl;
-    if (htmlSource) {
-      this.htmlSource = htmlSource;
-    }
-
-    if (!this.htmlSource) {
-      throw Error("No image or video provided!");
-    }
 
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      this.htmlSource
-    );
+    // is supportLinearFiltering = false then webgl only supports gl.NEAREST
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
   }
 
-  updateWithColorFill(color: Uint8Pixel) {
-    // so far we do not support updating size of the texture
+  fill(input: { width: number; height: number } | HTMLImageElement) {
     const gl = this.gl;
-
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-    // set the filtering so we don't need mips
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      this.level,
-      gl.RGBA, // internal format,
-      this.width,
-      this.height,
-      0, // border,
-      gl.RGBA, // format,
-      gl.UNSIGNED_BYTE, // type,
-      getFillData(this.width * this.height, color)
-    );
-  }
-
-  getTexture() {
-    return this.texture;
-  }
-
-  setAsOutput() {
-    const gl = this.gl;
-
-    // A renderbuffer is like a texture except it unlike a texture it can't be used as input to a shader. It can only be used as output.
-    // A framebuffer is a collection of textures and renderbuffers. When you want to render to a texture you attach one or more textures and renderbuffers to a framebuffer
-
-    if (!this.frameBuffer) {
-      // https://webglfundamentals.org/webgl/lessons/webgl-render-to-texture.html
-
-      // Create and bind the framebuffer
-      // frame buffers allow you to render to texture or renderbuffers
-      // frame buffer is a collection fo attachments
-      // by default WebGL has set frame buffer rendering to canvas
-      this.frameBuffer = gl.createFramebuffer();
-
-      if (!this.frameBuffer) {
-        throw Error(
-          "gl.createFramebuffer returns null! Probably WebGl context is lost!"
+    if ("nodeName" in input) {
+      // it's HTMLImageElement
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        input
+        // gl.TEXTURE_2D, 0, glExt.formatRGBA.internalFormat, glExt.formatRGBA.format, gl.HALF_FLOAT, input.image
+        // gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, input.image
+        // glExt.formatRGBA.internalFormat, glExt.formatRGBA.format, gl.HALF_FLOAT
+        // return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
+        // return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+      );
+    } else if (input.width && input.height) {
+      if (input.width !== this._width || input.height !== this._height) {
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          input.width,
+          input.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
         );
       }
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-      // https://webglfundamentals.org/webgl/lessons/webgl-framebuffers.html
-
-      // to add an attachment you can use framebufferTexture2D or framebufferRenderbuffer
-      // depends if destination is a texture or render buffer
-      const attachmentPoint = gl.COLOR_ATTACHMENT0;
-      // we assume that texture is always pointing to primary created texture, you cannot change this pointer
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        attachmentPoint,
-        gl.TEXTURE_2D,
-        this.texture,
-        this.level
-      );
+    } else {
+      throw Error("Texture was not filled with any data!");
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    this._width = input.width;
+    this._height = input.height;
+    this.aspect = input.height / input.width;
+    /*
+    // fill texture with 3x2 pixels
+    const level = 0;
+    const internalFormat = gl.LUMINANCE;
+    const width = 3;
+    const height = 2;
+    const border = 0;
+    const format = gl.LUMINANCE;
+    const type = gl.UNSIGNED_BYTE;
+    const data = new Uint8Array([
+      128,  64, 128,
+        0, 192,   0,
+    ]);
+    or data like this(just size of texture is bigger):
+        new Uint8Array([
+      0xDD, 0x99, 0xDD, 0xAA,
+      0x88, 0xCC, 0x88, 0xDD,
+      0xCC, 0x88, 0xCC, 0xAA,
+      0x88, 0xCC, 0x88, 0xCC,
+    ]),
 
-    // render cube with our 3x2 texture
-    // gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-    // Tell WebGL how to convert from clip space to pixels
-    gl.viewport(0, 0, this.width, this.height);
+    // WebGL copy pixels data faster if it's 2, 4 or 8 bytes at row. In our case it's 2 rows of THREE
+    // so we are getting the error "WebGL: INVALID_OPERATION: texImage2D: ArrayBufferView not big enough for request"
+    // WebGL by default reads 4 bytes per pixel except last row(3 in our case). So it reads 4+3 = 7, but we provided 6 values
+    // To fix it we can tell webGL to read 1 byte at a time by doing this:
+    const alignment = 1; // valid arguments are 1, 2, 4, 8
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, alignment);
 
-    // Clear the attachment(s).
-    gl.clearColor(0, 0, 0, 1); // clear to black
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border,
+                  format, type, data);
+
+WebGL1 supports following formats:
+Format	          Type	                  Channels	Bytes per pixel
+RGBA	            UNSIGNED_BYTE	          4	        4
+RGB	              UNSIGNED_BYTE	          3	        3
+RGBA	            UNSIGNED_SHORT_4_4_4_4	4	        2
+RGBA  	          UNSIGNED_SHORT_5_5_5_1	4	        2
+RGB	              UNSIGNED_SHORT_5_6_5	  3	        2
+LUMINANCE_ALPHA	  UNSIGNED_BYTE	          2	        2
+LUMINANCE	        UNSIGNED_BYTE	          1	        1
+ALPHA	            UNSIGNED_BYTE	          1	        1
+
+    */
+
+    /*
+gl.readPixels(
+    pixelX,            // x
+    pixelY,            // y
+    1,                 // width
+    1,                 // height
+    gl.RGBA,           // format
+    gl.UNSIGNED_BYTE,  // type
+    data);             // typed array to hold result
+*/
+  }
+
+  get width() {
+    if (!this._width) {
+      throw Error("Texture has no width specified");
+    }
+
+    return this._width;
+  }
+
+  get height() {
+    if (!this._height) {
+      throw Error("Texture has no height specified");
+    }
+
+    return this._height;
+  }
+
+  bind(textureUnitIndex: number) {
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0 + textureUnitIndex);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    // we are returning index, so we can pass it further for example to program's uniform, to attach the texture to the correct sampler
+    return textureUnitIndex;
+  }
+
+  getPosition(x: number, y: number, width: number, pivotX = 0.5, pivotY = 0.5) {
+    if (!this.aspect) {
+      throw Error(
+        "Texture has no aspect ratio. Method .fill(input) was not called."
+      );
+    }
+    // from login point of view, I'm not sure if this method should be part of texture class
+    // but it's very convenient for us to set a program's attributes
+    const height = this.aspect * width;
+
+    return new Float32Array([
+      x - width * pivotX,
+      y - height * pivotY,
+      x - width * pivotX,
+      y + height * (1 - pivotY),
+      x + width * (1 - pivotX),
+      y + height * (1 - pivotY),
+      x + width * (1 - pivotX),
+      y - height * pivotY,
+    ]);
   }
 }

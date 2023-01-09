@@ -1,85 +1,80 @@
-/* CSS RESET */
 
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-	margin: 0;
-	padding: 0;
-	border: 0;
-	font-size: 100%;
-	font: inherit;
-	vertical-align: baseline;
-}
-/* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
-	display: block;
-}
-body {
-	line-height: 1;
-}
-ol, ul {
-	list-style: none;
-}
-blockquote, q {
-	quotes: none;
-}
-blockquote:before, blockquote:after,
-q:before, q:after {
-	content: '';
-	content: none;
-}
-table {
-	border-collapse: collapse;
-	border-spacing: 0;
-}
-button {
-  border: none;
-  margin: 0;
-  padding: 0;
-  width: auto;
-  overflow: visible;
-
-  background: transparent;
-
-  /* inherit font & color from ancestor */
-  color: inherit;
-  font: inherit;
-
-  /* Normalize `line-height`. Cannot be changed from `normal` in Firefox 4+. */
-  line-height: normal;
-
-  /* Corrects font smoothing for webkit */
-  -webkit-font-smoothing: inherit;
-  -moz-osx-font-smoothing: inherit;
-
-  /* Corrects inability to style clickable `input` types in iOS */
-  -webkit-appearance: none;
-}
-
-*, *:before, *:after {
-  box-sizing: border-box;
-}
-
-html {
-  font-family: Helvetica, Arial;
-}
 
 /* OUR CUSTOM STYLES */
 
-canvas {
+:root {
+  --color-background: #000;
+  --space: 50px;
+  --edit-menu-height: 100px;
+  --timeline-height: 200px;
+}
+
+body {
   width: 100vw;
   height: 100vh;
+  
+  background: var(--color-background);
+
+  padding: var(--space);
+}
+
+.preview {
+  height: calc(100vh - var(--space) * 4 - var(--timeline-height) - var(--edit-menu-height));
+  /* DO NOT USE FLEX OR GRID, UPDATING CANVAS HAS AN ISSUE WITH IT, SINCE CANVAS DEPENDS ON PARENT AND PARENT DEPENDS ON CANVAS */
+}
+
+.preview canvas {
+  height: 100%;
+  width: 100%;
+}
+
+/* STYLES RELATED TO TIMELINE */
+
+.timeline {
+  position: relative;
+
+  height: var(--timeline-height);
+  width: 100%;
+
+  margin: var(--space) 0;
+}
+
+.add-btn {
+  --size: 50px;
+
+  right: 50px;
+  top: 80px;
+
+  position: absolute;
+
+  padding: 9px;
+  border-radius: 50%;
+  background-color: rgb(255, 76, 76);
+
+  width: var(--size);
+  height: var(--size);
+
+  
+  color: white;
+  cursor: pointer;
+}
+
+.add-btn input {
+  opacity: 0;
+}
+
+
+
+.timeline canvas {
+  height: 100%;
+  width: 100%;
+}
+
+.edit-menu {
+  grid-area: edit-menu;
+  background: cyan;
+
+  height: 100px;
 }
 
 body {

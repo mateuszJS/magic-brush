@@ -31,3 +31,10 @@ type Matrix3 = [
 ];
 
 type Uint8Pixel = [number, number, number, number];
+
+type vec4 = [number, number, number, number];
+
+interface Point {
+  x: number;
+  y: number;
+}

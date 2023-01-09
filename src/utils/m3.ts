@@ -1,4 +1,4 @@
-export function multiply(a: Matrix3, b: Matrix3): Matrix3 {
+function multiply(a: Matrix3, b: Matrix3): Matrix3 {
   const a00 = a[0 * 3 + 0];
   const a01 = a[0 * 3 + 1];
   const a02 = a[0 * 3 + 2];
@@ -31,7 +31,7 @@ export function multiply(a: Matrix3, b: Matrix3): Matrix3 {
   ];
 }
 
-export function identity(): Matrix3 {
+function identity(): Matrix3 {
   return [1, 0, 0, 0, 1, 0, 0, 0, 1];
 }
 
@@ -42,7 +42,7 @@ export function identity(): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} a projection matrix that converts from pixels to clipspace with Y = 0 at the top.
  * @memberOf module:webgl-2d-math
  */
-export function projection(width: number, height: number): Matrix3 {
+function projection(width: number, height: number): Matrix3 {
   // https://webglfundamentals.org/webgl/lessons/webgl-2d-matrices.html
   return [2 / width, 0, 0, 0, 2 / height, 0, -1, -1, 1];
 }
@@ -54,7 +54,7 @@ export function projection(width: number, height: number): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} a projection matrix that converts from pixels to clipspace with Y = 0 at the top.
  * @memberOf module:webgl-2d-math
  */
-export function projectionFlipY(width: number, height: number): Matrix3 {
+function projectionFlipY(width: number, height: number): Matrix3 {
   // https://webglfundamentals.org/webgl/lessons/webgl-2d-matrices.html
   // Note: This matrix flips the Y axis so 0 is at the top.
   return [2 / width, 0, 0, 0, -2 / height, 0, -1, 1, 1];
@@ -68,11 +68,7 @@ export function projectionFlipY(width: number, height: number): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function projectFlipY(
-  m: Matrix3,
-  width: number,
-  height: number
-): Matrix3 {
+function projectFlipY(m: Matrix3, width: number, height: number): Matrix3 {
   return multiply(m, projectionFlipY(width, height));
 }
 
@@ -84,7 +80,7 @@ export function projectFlipY(
  * @return {module:webgl-2d-math.Matrix3} a translation matrix that translates by tx and ty.
  * @memberOf module:webgl-2d-math
  */
-export function translation(tx: number, ty: number): Matrix3 {
+function translation(tx: number, ty: number): Matrix3 {
   return [1, 0, 0, 0, 1, 0, tx, ty, 1];
 }
 
@@ -96,7 +92,7 @@ export function translation(tx: number, ty: number): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function translate(m: Matrix3, tx: number, ty: number) {
+function translate(m: Matrix3, tx: number, ty: number) {
   return multiply(m, translation(tx, ty));
 }
 
@@ -106,7 +102,7 @@ export function translate(m: Matrix3, tx: number, ty: number) {
  * @return {module:webgl-2d-math.Matrix3} a rotation matrix that rotates by angleInRadians
  * @memberOf module:webgl-2d-math
  */
-export function rotation(angleInRadians: number): Matrix3 {
+function rotation(angleInRadians: number): Matrix3 {
   const c = Math.cos(angleInRadians);
   const s = Math.sin(angleInRadians);
   return [c, -s, 0, s, c, 0, 0, 0, 1];
@@ -119,7 +115,7 @@ export function rotation(angleInRadians: number): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function rotate(m: Matrix3, angleInRadians: number): Matrix3 {
+function rotate(m: Matrix3, angleInRadians: number): Matrix3 {
   return multiply(m, rotation(angleInRadians));
 }
 
@@ -131,7 +127,7 @@ export function rotate(m: Matrix3, angleInRadians: number): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} a scale matrix that scales by sx and sy.
  * @memberOf module:webgl-2d-math
  */
-export function scaling(sx: number, sy: number): Matrix3 {
+function scaling(sx: number, sy: number): Matrix3 {
   return [sx, 0, 0, 0, sy, 0, 0, 0, 1];
 }
 
@@ -143,15 +139,15 @@ export function scaling(sx: number, sy: number): Matrix3 {
  * @return {module:webgl-2d-math.Matrix3} the result
  * @memberOf module:webgl-2d-math
  */
-export function scale(m: Matrix3, sx: number, sy: number) {
+function scale(m: Matrix3, sx: number, sy: number) {
   return multiply(m, scaling(sx, sy));
 }
 
-export function dot(x1: number, y1: number, x2: number, y2: number) {
+function dot(x1: number, y1: number, x2: number, y2: number) {
   return x1 * x2 + y1 * y2;
 }
 
-export function normalize(x: number, y: number) {
+function normalize(x: number, y: number) {
   var l = Math.hypot(x, y);
   if (l > 0.00001) {
     return [x / l, y / l];
@@ -162,21 +158,21 @@ export function normalize(x: number, y: number) {
 
 // i = incident
 // n = normal
-export function reflect(ix: number, iy: number, nx: number, ny: number) {
+function reflect(ix: number, iy: number, nx: number, ny: number) {
   // I - 2.0 * dot(N, I) * N.
   var d = dot(nx, ny, ix, iy);
   return [ix - 2 * d * nx, iy - 2 * d * ny];
 }
 
-export function radToDeg(r: number) {
+function radToDeg(r: number) {
   return (r * 180) / Math.PI;
 }
 
-export function degToRad(d: number) {
+function degToRad(d: number) {
   return (d * Math.PI) / 180;
 }
 
-export function transformPoint(m: Matrix3, v: Matrix3) {
+function transformPoint(m: Matrix3, v: Matrix3) {
   var v0 = v[0];
   var v1 = v[1];
   var d = v0 * m[0 * 3 + 2] + v1 * m[1 * 3 + 2] + m[2 * 3 + 2];
@@ -186,7 +182,7 @@ export function transformPoint(m: Matrix3, v: Matrix3) {
   ];
 }
 
-export function inverse(m: Matrix3) {
+function inverse(m: Matrix3) {
   const m00 = m[0 * 3 + 0];
   const m01 = m[0 * 3 + 1];
   const m02 = m[0 * 3 + 2];
@@ -216,3 +212,24 @@ export function inverse(m: Matrix3) {
     (m11 * m00 - m01 * m10) * invDet,
   ];
 }
+
+export default {
+  multiply,
+  identity,
+  projection,
+  projectionFlipY,
+  projectFlipY,
+  translation,
+  translate,
+  rotation,
+  rotate,
+  scaling,
+  scale,
+  dot,
+  normalize,
+  reflect,
+  radToDeg,
+  degToRad,
+  transformPoint,
+  inverse,
+};
