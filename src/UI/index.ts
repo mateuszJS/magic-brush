@@ -33,15 +33,15 @@ export let skeletonSize: SkeletonSize = {
   },
 };
 
-const timelineContainer = document.createElement("section");
+const timelineSlider = document.createElement("div");
 const timelineFakeContentNode = document.createElement("div");
 
 export function subscribeTimelineScroll(func: (scrollY: number) => void) {
-  timelineContainer.addEventListener("scroll", () => {
-    func(timelineContainer.scrollLeft);
+  timelineSlider.addEventListener("scroll", () => {
+    func(timelineSlider.scrollLeft);
   });
   if (!isMobile) {
-    addGrabbing(timelineContainer);
+    addGrabbing(timelineSlider);
   }
 }
 
@@ -60,11 +60,14 @@ export function initUI() {
   mainContainer.appendChild(previewContainer);
 
   /* TIMELINE */
+  const timelineContainer = document.createElement("section");
   timelineContainer.classList.add("timeline");
   mainContainer.appendChild(timelineContainer);
 
-  // timelineFakeContentNode.classList.add("timeline-fake-content");
-  timelineContainer.appendChild(timelineFakeContentNode);
+  timelineSlider.classList.add("timeline-slider");
+  timelineContainer.appendChild(timelineSlider);
+
+  timelineSlider.appendChild(timelineFakeContentNode);
 
   const addBtn = document.createElement("label");
   addBtn.classList.add("add-btn");
