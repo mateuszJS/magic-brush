@@ -67,6 +67,7 @@ export function initUI() {
   timelineSlider.classList.add("timeline-slider");
   timelineContainer.appendChild(timelineSlider);
 
+  timelineFakeContentNode.style.height = "1px"; // on some browser(ekhem... Firefox!) slider won't show up if height is 0
   timelineSlider.appendChild(timelineFakeContentNode);
 
   const timelinePointer = document.createElement("section");

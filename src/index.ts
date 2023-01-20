@@ -1,5 +1,6 @@
 import { compilePrograms } from "programs";
 import initWebGL2 from "utils/WebGL/initWebGL2";
+import "./utils/requestVideoFrameCallbackPolyfill";
 
 document.oncontextmenu = document.body.oncontextmenu = function () {
   return false;
