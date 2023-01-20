@@ -14,7 +14,7 @@ export default function setupRenderTarget(
   }
 
   if (clearColor) {
-    gl.clearColor(...clearColor); // clear to black
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    // gl.clearColor(...clearColor); // clear to black
+    // gl.clear(gl.COLOR_BUFFER_BIT);
   }
 }

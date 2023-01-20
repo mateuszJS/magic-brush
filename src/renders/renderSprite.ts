@@ -1,4 +1,5 @@
-export default function renderSprite(gl: WebGL2RenderingContext) {
+export default function renderSprite() {
+  const gl = window.gl;
   // CHECK_FRAMEBUFFER_STATUS(); not sure why si was commented out
   gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
   // https://webglsamples.org/sprites/readme.html

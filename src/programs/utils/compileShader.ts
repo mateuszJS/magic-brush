@@ -1,8 +1,8 @@
 export function compileShader(
-  gl: WebGL2RenderingContext,
   shaderType: WebGL2RenderingContext["VERTEX_SHADER" | "FRAGMENT_SHADER"],
   shaderSource: string
 ) {
+  const gl = window.gl;
   const shader = gl.createShader(shaderType);
 
   if (!shader) {

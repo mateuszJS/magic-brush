@@ -16,13 +16,13 @@ export default class DrawPrimitivePickingProgram extends DrawPrimitiveProgram {
   private projectMatrix: Matrix3;
   readonly frameBuffer: FrameBuffer;
 
-  constructor(gl: WebGL2RenderingContext) {
-    super(gl, shaderFragmentSource);
+  constructor() {
+    super(shaderFragmentSource);
 
-    this.frameBuffer = new FrameBuffer(gl);
+    this.frameBuffer = new FrameBuffer();
     this.frameBuffer.resize(BUFFER_SIZE, BUFFER_SIZE);
 
-    this.idUniform = getUniform(gl, this.program, "u_id");
+    this.idUniform = getUniform(this.program, "u_id");
     this.matrix = m3.identity(); // just any default valid value
     this.projectMatrix = m3.projectionFlipY(BUFFER_SIZE, BUFFER_SIZE);
   }
@@ -37,6 +37,6 @@ export default class DrawPrimitivePickingProgram extends DrawPrimitiveProgram {
   setup(inputData: InputDataWithId) {
     super.setup(inputData, this.matrix);
     // super.setup(inputData, translate(this.matrix, inputData.x, inputData.y))
-    this.gl.uniform3fv(this.idUniform, inputData.id);
+    window.gl.uniform3fv(this.idUniform, inputData.id);
   }
 }

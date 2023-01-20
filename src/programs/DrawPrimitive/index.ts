@@ -17,17 +17,13 @@ export default class DrawPrimitive {
   private matrixUniform: WebGLUniformLocation;
   private colorUniform?: WebGLUniformLocation;
 
-  constructor(
-    protected gl: WebGL2RenderingContext,
-    pickingFragShader?: string
-  ) {
+  constructor(pickingFragShader?: string) {
+    const gl = window.gl;
     const vertexShader: WebGLShader = compileShader(
-      gl,
       gl.VERTEX_SHADER,
       shaderVertexSource
     );
     const fragmentShader: WebGLShader = compileShader(
-      gl,
       gl.FRAGMENT_SHADER,
       pickingFragShader || shaderFragmentSource
     );
@@ -36,10 +32,10 @@ export default class DrawPrimitive {
 
     // speed up setting attribute with bindVertexArrayOES https://webglfundamentals.org/webgl/lessons/webgl-attributes.html
     this.setPositionAttr = createAttribute(gl, this.program, "a_position");
-    this.matrixUniform = getUniform(gl, this.program, "u_matrix");
+    this.matrixUniform = getUniform(this.program, "u_matrix");
 
     if (!pickingFragShader) {
-      this.colorUniform = getUniform(gl, this.program, "u_color");
+      this.colorUniform = getUniform(this.program, "u_color");
     }
   }
 
@@ -133,7 +129,7 @@ export default class DrawPrimitive {
   // }
 
   setup(inputData: InputData, matrix: Matrix3) {
-    const gl = this.gl;
+    const gl = window.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
     if (this.colorUniform) {

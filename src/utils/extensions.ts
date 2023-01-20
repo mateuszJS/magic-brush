@@ -8,7 +8,6 @@ interface WebGlExtensions {
   formatRG: Extension;
   formatR: Extension;
   supportLinearFiltering: OES_texture_float_linear | null;
-  isReady: boolean;
 }
 
 function getSupportedFormat(
@@ -67,8 +66,8 @@ const glExt: WebGlExtensions = {
   formatRG: { internalFormat: 0, format: 0 },
   formatR: { internalFormat: 0, format: 0 },
   supportLinearFiltering: null,
-  isReady: false,
 };
+
 export default glExt;
 
 export function updateExtensions(gl: WebGL2RenderingContext) {
@@ -80,6 +79,4 @@ export function updateExtensions(gl: WebGL2RenderingContext) {
   glExt.formatRGBA = getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT);
   glExt.formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
   glExt.formatR = getSupportedFormat(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
-
-  glExt.isReady = true;
 }

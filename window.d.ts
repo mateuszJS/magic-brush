@@ -6,5 +6,7 @@ declare global {
     panelTrigger: HTMLButtonElement;
     startRecordBtn: HTMLButtonElement;
     stopRecordBtn: HTMLButtonElement;
+
+    gl: WebGL2RenderingContext;
   }
 }

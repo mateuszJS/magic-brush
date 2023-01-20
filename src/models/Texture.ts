@@ -1,10 +1,19 @@
+function getPixels(length: number) {
+  const values = Array.from({ length: length * 4 }, (_, index) => {
+    return [0, 3].includes(index % 4) ? 255 : 0;
+  });
+
+  return new Uint8Array(values);
+}
+
 export default class Texture {
   private _width?: number;
   private _height?: number;
-  private aspect?: number;
+  private _aspect?: number;
   readonly texture: WebGLTexture;
 
-  constructor(private gl: WebGL2RenderingContext) {
+  constructor() {
+    const gl = window.gl;
     const newTexture = gl.createTexture();
     if (!newTexture) {
       throw Error(
@@ -21,8 +30,15 @@ export default class Texture {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
   }
 
-  fill(input: { width: number; height: number } | HTMLImageElement) {
-    const gl = this.gl;
+  fill(
+    input:
+      | { width: number; height: number }
+      | HTMLImageElement
+      | { html: HTMLVideoElement; width: number; height: number }
+  ) {
+    const gl = window.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
     if ("nodeName" in input) {
       // it's HTMLImageElement
       gl.texImage2D(
@@ -32,6 +48,21 @@ export default class Texture {
         gl.RGBA,
         gl.UNSIGNED_BYTE,
         input
+        // gl.TEXTURE_2D, 0, glExt.formatRGBA.internalFormat, glExt.formatRGBA.format, gl.HALF_FLOAT, input.image
+        // gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, input.image
+        // glExt.formatRGBA.internalFormat, glExt.formatRGBA.format, gl.HALF_FLOAT
+        // return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
+        // return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+      );
+    } else if ("html" in input) {
+      // it's a video!
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        input.html
         // gl.TEXTURE_2D, 0, glExt.formatRGBA.internalFormat, glExt.formatRGBA.format, gl.HALF_FLOAT, input.image
         // gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, input.image
         // glExt.formatRGBA.internalFormat, glExt.formatRGBA.format, gl.HALF_FLOAT
@@ -49,16 +80,27 @@ export default class Texture {
           0,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          null
+          getPixels(input.width * input.height)
+          // null
         );
       }
     } else {
       throw Error("Texture was not filled with any data!");
     }
 
+    /*
+            video.addEventListener( "loadedmetadata", function () {
+            // retrieve dimensions
+            const height = this.videoHeight;
+            const width = this.videoWidth;
+
+            // send back result
+            resolve({height, width});
+        }, false);
+        */
     this._width = input.width;
     this._height = input.height;
-    this.aspect = input.height / input.width;
+    this._aspect = input.height / input.width;
     /*
     // fill texture with 3x2 pixels
     const level = 0;
@@ -116,9 +158,21 @@ gl.readPixels(
 */
   }
 
+  get aspect() {
+    if (!this._aspect) {
+      throw Error(
+        "Texture aspect ratio was not specified. Probably method .fill() has not been called yet."
+      );
+    }
+
+    return this._aspect;
+  }
+
   get width() {
     if (!this._width) {
-      throw Error("Texture has no width specified");
+      throw Error(
+        "Texture width was not specified. Probably method .fill() has not been called yet."
+      );
     }
 
     return this._width;
@@ -126,14 +180,17 @@ gl.readPixels(
 
   get height() {
     if (!this._height) {
-      throw Error("Texture has no height specified");
+      throw Error(
+        "Texture height was not specified. Probably method .fill() has not been called yet."
+      );
     }
 
     return this._height;
   }
 
   bind(textureUnitIndex: number) {
-    const gl = this.gl;
+    const gl = window.gl;
+
     gl.activeTexture(gl.TEXTURE0 + textureUnitIndex);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     // we are returning index, so we can pass it further for example to program's uniform, to attach the texture to the correct sampler
@@ -141,11 +198,6 @@ gl.readPixels(
   }
 
   getPosition(x: number, y: number, width: number, pivotX = 0.5, pivotY = 0.5) {
-    if (!this.aspect) {
-      throw Error(
-        "Texture has no aspect ratio. Method .fill(input) was not called."
-      );
-    }
     // from login point of view, I'm not sure if this method should be part of texture class
     // but it's very convenient for us to set a program's attributes
     const height = this.aspect * width;

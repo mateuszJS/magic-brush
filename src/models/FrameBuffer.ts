@@ -6,10 +6,11 @@ export default class FrameBuffer {
   // public texelSizeY: number
   readonly frameBufferLocation: WebGLFramebuffer;
   // we should use better names for internalFormat, format and type
-  constructor(gl: WebGL2RenderingContext) {
+  constructor() {
+    const gl = window.gl;
     // not sure if texture should be here, or should it be passed from arguments
     // also most of this constructor should be actually in render or attach
-    this.texture = new Texture(gl);
+    this.texture = new Texture();
 
     const newFrameBuffer = gl.createFramebuffer();
     if (!newFrameBuffer) {

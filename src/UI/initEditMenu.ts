@@ -1,4 +1,4 @@
-import captureStreamFromCanvas from "../captureStreamFromCanvas";
+// import captureStreamFromCanvas from "../utils/captureStreamFromCanvas";
 
 let isPanelOpen = window.localStorage.getItem("isPanelOpen") === "true";
 
@@ -6,11 +6,11 @@ const panelContent = `
   MENU
 `;
 
-export default function initEditMenu() {
+export default function initEditMenu(mainContainer: HTMLElement) {
   const panelNode = document.createElement("ul");
   panelNode.innerHTML = panelContent;
   panelNode.classList.add("edit-menu");
-  document.body.appendChild(panelNode);
+  mainContainer.appendChild(panelNode);
 
   // const updateHTML = () => {
   //   panelNode.classList[isPanelOpen ? "remove" : "add"]("visible");

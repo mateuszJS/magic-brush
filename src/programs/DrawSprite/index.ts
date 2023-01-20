@@ -4,6 +4,7 @@ import { createAttribute, createAttrIndex } from "../utils/createAttribute";
 import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
+import { canvasMatrix } from "programs/canvasMatrix";
 
 const texCoordDefault = new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]);
 
@@ -24,7 +25,7 @@ const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
 interface InputData {
   // if any of value is not presented, then we assume we are rendering whole texture to a canvas
   texUnitIndex: number;
-  texCoord?: [number, number, number, number, number, number, number, number];
+  texCoord?: Float32Array;
   position: Float32Array;
 }
 
@@ -36,14 +37,13 @@ export default class DrawSprite {
   private texUniform: WebGLUniformLocation;
   private matrixUniform: WebGLUniformLocation;
 
-  constructor(private gl: WebGL2RenderingContext) {
+  constructor() {
+    const gl = window.gl;
     const vertexShader: WebGLShader = compileShader(
-      gl,
       gl.VERTEX_SHADER,
       shaderVertexSource
     );
     const fragmentShader: WebGLShader = compileShader(
-      gl,
       gl.FRAGMENT_SHADER,
       shaderFragmentSource
     );
@@ -56,21 +56,17 @@ export default class DrawSprite {
 
     this.setAttrIndex = createAttrIndex(gl);
 
-    this.texUniform = getUniform(gl, this.program, "u_texture");
-    this.matrixUniform = getUniform(gl, this.program, "u_matrix");
+    this.texUniform = getUniform(this.program, "u_texture");
+    this.matrixUniform = getUniform(this.program, "u_matrix");
   }
 
-  setup(inputData: InputData, matrix: Matrix3) {
-    const gl = this.gl;
+  setup(inputData: InputData, matrix: Matrix3 = canvasMatrix) {
+    const gl = window.gl;
     gl.useProgram(this.program);
     gl.uniform1i(this.texUniform, inputData.texUnitIndex);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
     this.setPositionAttr(inputData.position);
-    this.setTexCoordAttr(
-      inputData.texCoord
-        ? new Float32Array(inputData.texCoord)
-        : texCoordDefault
-    );
+    this.setTexCoordAttr(inputData.texCoord || texCoordDefault);
     this.setAttrIndex(indexes);
   }
 }
