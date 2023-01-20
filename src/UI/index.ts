@@ -69,6 +69,10 @@ export function initUI() {
 
   timelineSlider.appendChild(timelineFakeContentNode);
 
+  const timelinePointer = document.createElement("section");
+  timelinePointer.classList.add("timeline-pointer");
+  timelineContainer.appendChild(timelinePointer);
+
   const addBtn = document.createElement("label");
   addBtn.classList.add("add-btn");
   addBtn.innerHTML =
