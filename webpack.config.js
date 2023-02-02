@@ -9,7 +9,8 @@ module.exports = {
     static: "./dist",
   },
   resolve: {
-    extensions: [".ts", ".js", ".frag", ".vert"],
+    extensions: [".ts", ".js", ".frag", ".vert", ".png", ".mp4"],
+    modules: [path.resolve(__dirname, "src"), "node_modules"], // to use absolute path in src
   },
   module: {
     rules: [
@@ -20,8 +21,15 @@ module.exports = {
       },
       {
         test: /\.(frag|vert)$/,
-        use: "raw-loader",
-        // use: "asset/source",
+        type: "asset/source",
+      },
+      {
+        test: /\.scss$/,
+        use: ["style-loader", "css-loader", "sass-loader"],
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif|mp4)$/,
+        type: "asset/resource",
       },
     ],
   },
@@ -36,6 +44,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       title: "Magic Brush",
+      template: path.resolve(__dirname, "src/index.html"),
     }),
   ],
 };
