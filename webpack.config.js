@@ -44,6 +44,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       title: "Magic Brush",
+      template: path.resolve(__dirname, "src/index.html"),
     }),
   ],
 };

@@ -34,7 +34,7 @@ export default class FrameBuffer {
   }
 
   resize(width: number, height: number) {
-    this.texture.fill({ width, height });
+    this.texture.fill({ width, height, color: [0, 0, 1, 1] });
   }
 
   attach(textureUnitIndex: number) {

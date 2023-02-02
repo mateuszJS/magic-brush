@@ -2,6 +2,7 @@ export default function renderSprite() {
   const gl = window.gl;
   // CHECK_FRAMEBUFFER_STATUS(); not sure why si was commented out
   gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+  gl.bindVertexArray(null);
   // https://webglsamples.org/sprites/readme.html
   // https://groups.google.com/g/webgl-dev-list/c/fO9IOv9AFf8
 

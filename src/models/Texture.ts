@@ -1,7 +1,10 @@
-function getPixels(length: number) {
-  const values = Array.from({ length: length * 4 }, (_, index) => {
-    return [0, 3].includes(index % 4) ? 255 : 0;
-  });
+import FrameBuffer from "./FrameBuffer";
+
+function getPixels(length: number, color: vec4) {
+  const values = Array.from(
+    { length: length * 4 },
+    (_, index) => color[index % 4] * 255
+  );
 
   return new Uint8Array(values);
 }
@@ -32,9 +35,10 @@ export default class Texture {
 
   fill(
     input:
-      | { width: number; height: number }
+      | { width: number; height: number; color: vec4 }
       | HTMLImageElement
       | { html: HTMLVideoElement; width: number; height: number }
+      | FrameBuffer
   ) {
     const gl = window.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -60,6 +64,9 @@ export default class Texture {
         gl.TEXTURE_2D,
         0,
         gl.RGBA,
+        input.width,
+        input.height,
+        0,
         gl.RGBA,
         gl.UNSIGNED_BYTE,
         input.html
@@ -69,6 +76,15 @@ export default class Texture {
         // return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
         // return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
       );
+    } else if ("frameBufferLocation" in input) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, input.frameBufferLocation);
+      gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGB, 0, 0, 100, 100, 0);
+
+      this._width = input.texture.width;
+      this._height = input.texture.height;
+      this._aspect = input.texture.width / input.texture.height;
+
+      return; // frameBuffer has special case fo filling size, what is handled above
     } else if (input.width && input.height) {
       if (input.width !== this._width || input.height !== this._height) {
         gl.texImage2D(
@@ -80,7 +96,7 @@ export default class Texture {
           0,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          getPixels(input.width * input.height)
+          getPixels(input.width * input.height, input.color)
           // null
         );
       }
@@ -100,7 +116,7 @@ export default class Texture {
         */
     this._width = input.width;
     this._height = input.height;
-    this._aspect = input.height / input.width;
+    this._aspect = input.width / input.height;
     /*
     // fill texture with 3x2 pixels
     const level = 0;
@@ -188,7 +204,25 @@ gl.readPixels(
     return this._height;
   }
 
-  bind(textureUnitIndex: number) {
+  // public copy(target: Texture) {
+  //   const gl = window.gl;
+
+  //   gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+  //   gl.TEXTURE_2D,
+  //   0,
+  //   gl.RGBA,
+  //   input.width,
+  //   input.height,
+  //   0,
+  //   gl.RGBA,
+  //   gl.UNSIGNED_BYTE,
+  //   input.html
+
+  //   gl.copyTexImage2D(target, level, internalformat, x, y, width, height, border)
+  // }
+
+  public bind(textureUnitIndex: number) {
     const gl = window.gl;
 
     gl.activeTexture(gl.TEXTURE0 + textureUnitIndex);
@@ -197,10 +231,16 @@ gl.readPixels(
     return textureUnitIndex;
   }
 
-  getPosition(x: number, y: number, width: number, pivotX = 0.5, pivotY = 0.5) {
+  public getPosition(
+    x: number,
+    y: number,
+    width: number,
+    pivotX = 0.5,
+    pivotY = 0.5
+  ) {
     // from login point of view, I'm not sure if this method should be part of texture class
     // but it's very convenient for us to set a program's attributes
-    const height = this.aspect * width;
+    const height = (1 / this.aspect) * width;
 
     return new Float32Array([
       x - width * pivotX,
