@@ -1,62 +1,53 @@
 import Texture from "models/Texture";
 import AbstractVideo from "./AbstractVideo";
-import { MINIATURE_SIZE } from "consts";
-import { drawSprite } from "programs";
-import { getMiniatureTexCoords } from "Timeline";
-import renderSprite from "renders/renderSprite";
-import FrameBuffer from "models/FrameBuffer";
-import setupRenderTarget from "renders/setupRenderTarget";
-import m3 from "utils/m3";
+import { MINIATURE_SIZE, MS_PER_PIXEL } from "consts";
 
 const PLACEHOLDER_TEX_SIZE = 1;
+
+const gl = window.gl;
+
+const getDepthFromTime = (timeMs: number) =>
+  Math.ceil(timeMs / MS_PER_PIXEL / MINIATURE_SIZE);
 
 export default class MiniatureVideo extends AbstractVideo {
   private requestedFrames: {
     time: number;
     callback: VoidFunction;
-    texture: Texture;
     isFetching: boolean;
   }[]; // includes times
-  private textureCache: Map<number, Texture>;
-  private copyTexture: Texture;
-  private copyFBO: FrameBuffer;
-  private vao: WebGLVertexArrayObject | null;
-  private projMatrix: Matrix3;
+  public textureAtlas: WebGLTexture;
+  private fetchedFramesMs: number[];
 
   constructor(
     url: string,
-    cbOnReady: (duration: number) => void,
+    cbOnReady: (video: MiniatureVideo) => void,
     private getCurrTime: () => number
   ) {
     super(url, (duration) => {
-      const texCoords = new Float32Array(
-        getMiniatureTexCoords(this.width, this.height)
-      );
-      const positions = new Float32Array([
-        0,
-        0,
-        0,
-        MINIATURE_SIZE,
-        MINIATURE_SIZE,
-        MINIATURE_SIZE,
-        MINIATURE_SIZE,
-        0,
-      ]);
-      const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
+      cbOnReady(this);
 
-      this.vao = drawSprite.createVAO(texCoords, positions, indexes);
+      const texture = gl.createTexture();
+      if (!texture) throw Error("NO TEXTURE");
+      gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
+      const numberOfMiniatures = getDepthFromTime(duration);
+      console.log("depth", numberOfMiniatures);
+      gl.texStorage3D(
+        gl.TEXTURE_2D_ARRAY,
+        1, // its not he level, it's the number of levels, you always have at least one
+        gl.RGBA8,
+        this.width,
+        this.height,
+        numberOfMiniatures
+      ); // allocating space in the GPU
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-      cbOnReady(duration);
+      this.textureAtlas = texture;
     });
 
+    this.textureAtlas = new Texture();
     this.requestedFrames = [];
-    this.textureCache = new Map();
-    this.copyTexture = new Texture();
-    this.copyFBO = new FrameBuffer();
-
-    this.vao = null;
-
-    this.projMatrix = m3.projection(MINIATURE_SIZE, MINIATURE_SIZE);
+    this.fetchedFramesMs = [];
   }
 
   private fetchAnotherRequestedFrame() {
@@ -81,37 +72,32 @@ export default class MiniatureVideo extends AbstractVideo {
       // metadata.presentedFrames - number of frames submitted for composition since last requestVideoFrameCallback, usually is 1.
       // metadata.mediaTime - like video.currentTime, in seconds
 
+      this.fetchedFramesMs.push(frameDetails.time);
+
       const end = performance.now();
       // console.log("performance", end - start);
       this.requestedFrames = this.requestedFrames.filter(
         (frame) => frame.time !== frameDetails.time
       );
 
-      // catch current video frame in a texture
-      this.copyTexture.fill({
-        html: this.html,
-        width: this.width,
-        height: this.height,
-      });
-
-      // render texture from previous step to frame buffer with the size of miniature
-      this.copyFBO.resize(MINIATURE_SIZE, MINIATURE_SIZE);
-      if (!this.vao) {
-        throw Error(
-          "VAO was nto created yet! It's created once the video is ready."
-        );
-      }
-      drawSprite.setup(this.vao, this.copyTexture.bind(0), this.projMatrix);
-
-      setupRenderTarget(this.copyFBO);
-      renderSprite(); // should scream if setupRenderTarget was not called after last render, it may be an issue
-      // also should throw an error if matrix was not updated, and we are not rendering to canvas with canvas matrix
-      // maybe there is some webgl 2 methods which can make ti easier?
-      // fix length of the timeline
-      // some miniatures are missing while scrolling fast
+      const zOffset = getDepthFromTime(frameDetails.time);
+      gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.textureAtlas);
+      gl.texSubImage3D(
+        gl.TEXTURE_2D_ARRAY,
+        0,
+        0,
+        0,
+        zOffset,
+        this.width,
+        this.height,
+        1,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        html
+      );
 
       /* COPY PIXELS FROM CURRENT FRAME BUFFER INTO TEXTURE */
-      frameDetails.texture.fill(this.copyFBO);
+      // frameDetails.texture.fill(this.copyFBO);
 
       frameDetails.callback();
 
@@ -121,44 +107,29 @@ export default class MiniatureVideo extends AbstractVideo {
     });
   }
 
-  private getFrame(msOffset: number, callback: VoidFunction, texture: Texture) {
+  private getFrame(msOffset: number, callback: VoidFunction) {
     const alreadyExists = this.requestedFrames.some(
       (frame) => frame.time === msOffset
     );
 
     if (alreadyExists) return;
 
-    const isQueueEmpty = this.requestedFrames.length === 0;
     this.requestedFrames.push({
       time: msOffset,
       callback,
-      texture,
       isFetching: false,
     });
 
-    if (isQueueEmpty) {
+    if (this.requestedFrames.length === 1) {
+      // so it's an item that we just pushed
       this.fetchAnotherRequestedFrame();
     }
   }
 
   public getMiniature(msOffset: number, callback: VoidFunction) {
-    let tex = this.textureCache.get(msOffset);
-
-    if (!tex) {
-      tex = new Texture();
-      tex.fill({
-        width: PLACEHOLDER_TEX_SIZE,
-        height: PLACEHOLDER_TEX_SIZE,
-        color: [0, 1, 0, 1],
-      });
-      this.textureCache.set(msOffset, tex);
+    if (!this.fetchedFramesMs.includes(msOffset)) {
+      this.getFrame(msOffset, callback);
     }
-
-    if (tex.width === PLACEHOLDER_TEX_SIZE) {
-      this.getFrame(msOffset, callback, tex);
-    }
-
-    return tex;
   }
 
   public clearRequestsList() {

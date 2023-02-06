@@ -28,7 +28,7 @@ export default class Texture {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     // is supportLinearFiltering = false then webgl only supports gl.NEAREST
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); // gl.LINEAR smooth the values, gives blurry look
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
   }
@@ -66,7 +66,7 @@ export default class Texture {
         gl.RGBA,
         input.width,
         input.height,
-        0,
+        0, // border is always 0, any other value will cause an error
         gl.RGBA,
         gl.UNSIGNED_BYTE,
         input.html
@@ -96,7 +96,13 @@ export default class Texture {
           0,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          getPixels(input.width * input.height, input.color)
+          getPixels(input.width * input.height, input.color) // it can be also replaces with offset, then data will be pulled from buffer under gl.PIXEL_UNPACK_BUFFER
+          /*
+            const pixels = new Uint8Array([ ... ]);
+            const pixelBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pixelBuffer);
+            gl.bufferData(gl.PIXEL_UNPACK_BUFFER, pixels, gl.STATIC_DRAW)
+          */
           // null
         );
       }
@@ -225,7 +231,7 @@ gl.readPixels(
   public bind(textureUnitIndex: number) {
     const gl = window.gl;
 
-    gl.activeTexture(gl.TEXTURE0 + textureUnitIndex);
+    gl.activeTexture(gl.TEXTURE0 + textureUnitIndex); // activate certain texture unit
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     // we are returning index, so we can pass it further for example to program's uniform, to attach the texture to the correct sampler
     return textureUnitIndex;
