@@ -10,11 +10,13 @@ import linkProgram from "programs/utils/linkProgram";
 // keys are attributes names, values are location
 const attrs = {
   a_position: 0,
+  a_texCoord: 1,
 } as const;
 // because all DrawSprite programs will share same attr locations, we can also share VAO
 
 export default class DrawShape {
   private program: WebGLProgram;
+  private texUniform: WebGLUniformLocation;
 
   constructor() {
     const gl = window.gl;
@@ -34,6 +36,8 @@ export default class DrawShape {
 
     // after setting location of attributes we can link the program
     linkProgram(this.program);
+
+    this.texUniform = getUniform(this.program, "u_texture");
 
     // speed up setting attribute with bindVertexArrayOES https://webglfundamentals.org/webgl/lessons/webgl-attributes.html
   }
@@ -71,8 +75,9 @@ export default class DrawShape {
   //   return vao;
   // }
 
-  public setup() {
+  public setup(texUnitIndex: number) {
     const gl = window.gl;
     gl.useProgram(this.program);
+    gl.uniform1i(this.texUniform, texUnitIndex);
   }
 }

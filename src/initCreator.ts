@@ -1,15 +1,11 @@
 import "./styles/index.scss";
-// import Preview from "Preview";
 import { initUI, subscribeTimelineScroll, updateTimelineWidth } from "UI";
-import { initCanvasMatrix } from "programs/canvasMatrix";
+import { calcMatrix } from "programs/canvasMatrix";
 import resizeCanvas from "utils/resizeCanvas";
-import setupRenderTarget from "renders/setupRenderTarget";
 import { MS_PER_PIXEL } from "consts";
 import Timeline from "Timeline";
 import MiniatureVideo from "models/Video/MiniatureVideo";
 import Preview from "Preview";
-
-// tips form mozilla! https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices
 
 interface SnowEffect {}
 
@@ -64,13 +60,18 @@ function runCreator(state: State) {
   requestAnimationFrame(draw);
 }
 
+function onResize() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty("--vh", `${vh}px`);
+  resizeCanvas(); // remember to always firstly setup --vh in css
+  calcMatrix(); // remember to firstly set size of canvas!
+}
+
 export default function initCreator(videoUrl: string) {
   const state = new State(videoUrl, runCreator);
-  initUI();
-  resizeCanvas();
-  window.addEventListener("resize", resizeCanvas);
-  initCanvasMatrix();
-
+  onResize();
+  window.addEventListener("resize", onResize);
+  initUI(); // UI initialize skeletonSize, what has to be calculated AFTER setting --vh variable in css to make measurements correctly
   subscribeTimelineScroll((scroll) => {
     state.currTime = scroll * MS_PER_PIXEL;
     state.refresh();

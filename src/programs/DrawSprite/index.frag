@@ -13,5 +13,4 @@ out vec4 fragColor;
 void main () {
     vec4 texel = texture(u_texture, v_texCoord);
     fragColor = vec4(texel.rgb, texel.a);
-    // gl_FragColor = vec4(texel.rgb * texel.a, texel.a);
 }

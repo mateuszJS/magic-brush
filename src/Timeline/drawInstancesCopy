@@ -1,4 +1,4 @@
-import { MINIATURE_SIZE, MS_PER_PIXEL } from "consts";
+import { MINI_SIZE, MS_PER_PIXEL } from "consts";
 import { State } from "initCreator";
 import Texture from "models/Texture";
 import MiniatureVideo from "models/Video/MiniatureVideo";
@@ -10,8 +10,6 @@ import setupRenderTarget from "renders/setupRenderTarget";
 import { skeletonSize, updateTimelineWidth } from "UI";
 import m3 from "utils/m3";
 
-const MS_PER_MINIATURE = MS_PER_PIXEL * MINIATURE_SIZE;
-
 // we should also try keep constant attributes in one buffer
 // const vao = drawSprite.createVAO(
 //   texCoords,
@@ -22,7 +20,7 @@ const MS_PER_MINIATURE = MS_PER_PIXEL * MINIATURE_SIZE;
 
 /*
 function renderTexture(index: number, startX: number, video: MiniatureVideo) {
-  const x = startX + index * MINIATURE_SIZE;
+  const x = startX + index * MINI_SIZE;
   const textureUnit = 0;
   const gl = window.gl;
   gl.activeTexture(gl.TEXTURE0 + textureUnit); // activate certain texture unit
@@ -165,7 +163,7 @@ function getStartX(currTime: number) {
     skeleton.width / 2 -
     currTime / MS_PER_PIXEL;
 
-  return offset < 0 ? offset % MINIATURE_SIZE : offset;
+  return offset < 0 ? offset % MINI_SIZE : offset;
 }
 
 function getStartTime(currTime: number) {
@@ -173,13 +171,13 @@ function getStartTime(currTime: number) {
     currTime - skeletonSize.timeline.width * 0.5 * MS_PER_PIXEL;
   const safeTimeOffset = Math.max(0, timeOffset); // we don't need a time shift until first miniatures hides
 
-  return Math.floor(safeTimeOffset / MS_PER_MINIATURE) * MS_PER_MINIATURE;
+  return Math.floor(safeTimeOffset / MS_PER_MINI) * MS_PER_MINI;
 }
 
 function getMiniaturesNumber(startTime: number, video: MiniatureVideo) {
   const length = (video.duration - startTime) / MS_PER_PIXEL;
   // the distance from first miniature to the last that we are planning to render
-  return Math.ceil(length / MINIATURE_SIZE);
+  return Math.ceil(length / MINI_SIZE);
 }
 
 let avgValue = 0;
@@ -215,10 +213,10 @@ export default class Timeline {
       0,
       0,
       0,
-      MINIATURE_SIZE,
-      MINIATURE_SIZE,
-      MINIATURE_SIZE,
-      MINIATURE_SIZE,
+      MINI_SIZE,
+      MINI_SIZE,
+      MINI_SIZE,
+      MINI_SIZE,
       0,
     ]);
     const depth = new Float32Array([0, 0, 0, 0]);
@@ -295,13 +293,13 @@ export default class Timeline {
     //       0,
     //       0,
     //       0,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
     //       0,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
     //       0,
     //       0,
     //     ]);
@@ -313,10 +311,10 @@ export default class Timeline {
     //       0,
     //       0,
     //       0,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
+    //       MINI_SIZE,
     //       0,
     //     ]);
     //     const depth = new Float32Array([0, 0, 0, 0]);
@@ -355,13 +353,13 @@ export default class Timeline {
     //     gl.enable(gl.SCISSOR_TEST);
     //     gl.scissor(
     //       startX +
-    //         (length - 1) * MINIATURE_SIZE +
-    //         (((this.video.duration - startTime) / MS_PER_PIXEL) % MINIATURE_SIZE),
+    //         (length - 1) * MINI_SIZE +
+    //         (((this.video.duration - startTime) / MS_PER_PIXEL) % MINI_SIZE),
     //       gl.drawingBufferHeight -
     //         skeletonSize.timeline.y -
     //         skeletonSize.timeline.height,
-    //       MINIATURE_SIZE,
-    //       MINIATURE_SIZE
+    //       MINI_SIZE,
+    //       MINI_SIZE
     //     );
     //     gl.clearColor(0, 0, 0, 1.0);
     //     gl.clear(gl.COLOR_BUFFER_BIT);

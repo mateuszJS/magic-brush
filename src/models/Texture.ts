@@ -1,8 +1,8 @@
 import FrameBuffer from "./FrameBuffer";
 
-function getPixels(length: number, color: vec4) {
+function getPixels(pixelsQuantity: number, color: vec4) {
   const values = Array.from(
-    { length: length * 4 },
+    { length: pixelsQuantity * 4 },
     (_, index) => color[index % 4] * 255
   );
 

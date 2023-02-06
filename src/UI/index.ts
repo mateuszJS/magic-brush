@@ -78,7 +78,6 @@ export function initUI() {
   const updateSkeletonSize = () => {
     const previewRect = previewContainer.getBoundingClientRect();
     const timelineRect = timelineContainer.getBoundingClientRect();
-
     skeletonSize = {
       preview: {
         x: previewRect.left,
@@ -93,6 +92,7 @@ export function initUI() {
         height: timelineRect.height,
       },
     };
+    console.log(skeletonSize);
   };
 
   updateSkeletonSize();

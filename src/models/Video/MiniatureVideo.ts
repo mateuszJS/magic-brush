@@ -1,15 +1,19 @@
 import Texture from "models/Texture";
-import AbstractVideo from "./AbstractVideo";
-import { MINIATURE_SIZE, MS_PER_PIXEL } from "consts";
+import { MINI_SIZE, MS_PER_PIXEL } from "consts";
 
 const PLACEHOLDER_TEX_SIZE = 1;
 
 const gl = window.gl;
 
 const getDepthFromTime = (timeMs: number) =>
-  Math.ceil(timeMs / MS_PER_PIXEL / MINIATURE_SIZE);
+  Math.ceil(timeMs / MS_PER_PIXEL / MINI_SIZE);
 
-export default class MiniatureVideo extends AbstractVideo {
+export default class MiniatureVideo {
+  private _width?: number;
+  private _height?: number;
+  private _duration?: number;
+  public html: HTMLVideoElement;
+  public isReady: boolean;
   private requestedFrames: {
     time: number;
     callback: VoidFunction;
@@ -23,13 +27,20 @@ export default class MiniatureVideo extends AbstractVideo {
     cbOnReady: (video: MiniatureVideo) => void,
     private getCurrTime: () => number
   ) {
-    super(url, (duration) => {
-      cbOnReady(this);
+    const html = document.createElement("video");
+    this.isReady = false;
+
+    html.addEventListener("loadedmetadata", () => {
+      this.isReady = true;
+      this._width = html.videoWidth;
+      this._height = html.videoHeight;
+      this._duration = html.duration * 1000;
+      // startDate - Returns a Date object representing the current time offset
 
       const texture = gl.createTexture();
       if (!texture) throw Error("NO TEXTURE");
       gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
-      const numberOfMiniatures = getDepthFromTime(duration);
+      const numberOfMiniatures = getDepthFromTime(this.duration);
       console.log("depth", numberOfMiniatures);
       gl.texStorage3D(
         gl.TEXTURE_2D_ARRAY,
@@ -43,11 +54,56 @@ export default class MiniatureVideo extends AbstractVideo {
       gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
       this.textureAtlas = texture;
+
+      // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
+      this.html.play();
+      this.html.pause();
+
+      cbOnReady(this);
     });
+
+    html.playsInline = true;
+    html.muted = true;
+    html.loop = true;
+    html.src = url;
+    html.preload = "auto";
+
+    this.html = html;
 
     this.textureAtlas = new Texture();
     this.requestedFrames = [];
     this.fetchedFramesMs = [];
+  }
+
+  // returns duration of the video in ms
+  get duration() {
+    if (!this._duration) {
+      throw Error(
+        "Duration of the video is unknown! Wait for meta data to be loaded!"
+      );
+    }
+
+    return this._duration;
+  }
+
+  get width() {
+    if (!this._width) {
+      throw Error(
+        "Width of the video is unknown! Wait for meta data to be loaded!"
+      );
+    }
+
+    return this._width;
+  }
+
+  get height() {
+    if (!this._height) {
+      throw Error(
+        "Height of the video is unknown! Wait for meta data to be loaded!"
+      );
+    }
+
+    return this._height;
   }
 
   private fetchAnotherRequestedFrame() {
@@ -79,8 +135,7 @@ export default class MiniatureVideo extends AbstractVideo {
       this.requestedFrames = this.requestedFrames.filter(
         (frame) => frame.time !== frameDetails.time
       );
-
-      const zOffset = getDepthFromTime(frameDetails.time);
+      const zOffset = getDepthFromTime(frameDetails.time); // make sure it's <0. Safari thrown error that sometimes it is less than 0
       gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.textureAtlas);
       gl.texSubImage3D(
         gl.TEXTURE_2D_ARRAY,
@@ -105,6 +160,7 @@ export default class MiniatureVideo extends AbstractVideo {
         this.fetchAnotherRequestedFrame();
       }
     });
+    // html.pause();
   }
 
   private getFrame(msOffset: number, callback: VoidFunction) {
@@ -113,7 +169,6 @@ export default class MiniatureVideo extends AbstractVideo {
     );
 
     if (alreadyExists) return;
-
     this.requestedFrames.push({
       time: msOffset,
       callback,

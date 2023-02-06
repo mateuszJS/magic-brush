@@ -8,14 +8,12 @@
 }
 
 body {
-  width: 100vw;
-  height: 100vh;
   background: var(--color-background);
 }
 
 main {
   width: 100vw;
-  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   
   display: grid;
   grid-template-rows: 1fr var(--space) 100px var(--space) 100px;
@@ -63,7 +61,7 @@ canvas {
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   width: 100vw;
   pointer-events: none;
   // for some reason gl doesn't scale when we use bottom: 0, right: 0.

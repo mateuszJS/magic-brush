@@ -15,6 +15,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Recommended"
+  "$schema": "https://json.schemastore.org/tsconfig", // @tsconfig/recommended
+  "display": "Recommended" // @tsconfig/recommended
 }

@@ -1,4 +1,4 @@
-import { MINIATURE_SIZE, MS_PER_PIXEL } from "consts";
+import { MINI_SIZE } from "consts";
 import { drawSprite } from "programs";
 
 export function getMiniatureTexCoords(width: number, height: number) {
@@ -18,19 +18,19 @@ export function getMiniatureTexCoords(width: number, height: number) {
 }
 
 export function getAttrs(
-  videoDuration: number,
+  maxMinisQuantity: number,
   videoWidth: number,
   videoHeight: number
 ): WebGLVertexArrayObject {
-  const length = Math.ceil(videoDuration / MS_PER_PIXEL / MINIATURE_SIZE);
+  // TODO: we should render max miniatures number on the screen!!! not max total!
   const positions = new Float32Array([
     0,
     0,
     0,
-    MINIATURE_SIZE,
-    MINIATURE_SIZE,
-    MINIATURE_SIZE,
-    MINIATURE_SIZE,
+    MINI_SIZE,
+    MINI_SIZE,
+    MINI_SIZE,
+    MINI_SIZE,
     0,
   ]);
   const texCoords = new Float32Array(
@@ -38,11 +38,13 @@ export function getAttrs(
   );
   const offsetX = new Float32Array(
     Array.from(
-      { length },
-      (_, index) => index * (MINIATURE_SIZE / window.gl.drawingBufferWidth) * 2
+      { length: maxMinisQuantity },
+      (_, index) => index * (MINI_SIZE / window.gl.drawingBufferWidth) * 2
     )
   );
-  const depth = new Float32Array(Array.from({ length }, (_, index) => index));
+  const depth = new Float32Array(
+    Array.from({ length: maxMinisQuantity }, (_, index) => index)
+  );
   const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
 
   return drawSprite.createVAO(texCoords, positions, depth, offsetX, indexes);
