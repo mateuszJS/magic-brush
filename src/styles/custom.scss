@@ -2,6 +2,24 @@
 
 /* OUR CUSTOM STYLES */
 
+*, *:before, *:after {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(21, 255, 0);
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(255, 0, 0);
+}
+
 :root {
   --color-background: #000;
   --space: 50px;
@@ -16,13 +34,13 @@ main {
   height: calc(var(--vh, 1vh) * 100);
   
   display: grid;
-  grid-template-rows: 1fr var(--space) 100px var(--space) 100px;
+  grid-template-rows: 1fr var(--space) 100px var(--space) 100px var(--space);
 
   grid-template-areas: "preview"
     "."
     "timeline"
     "."
-    "edit-menu";
+    "toolbar";
 
   justify-items: stretch;
 }
@@ -86,12 +104,6 @@ canvas {
 
 .add-btn input {
   opacity: 0;
-}
-
-.edit-menu {
-  grid-area: edit-menu;
-  outline: 5px solid lime;
-  height: 100px;
 }
 
 body {

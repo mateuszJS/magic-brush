@@ -1,5 +1,5 @@
 import { MINI_SIZE } from "consts";
-import { drawSprite } from "programs";
+import { drawTexture3D } from "programs";
 
 export function getMiniatureTexCoords(width: number, height: number) {
   const offsetY = (Math.max(0, height - width) * 0.5) / height;
@@ -47,5 +47,5 @@ export function getAttrs(
   );
   const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
 
-  return drawSprite.createVAO(texCoords, positions, depth, offsetX, indexes);
+  return drawTexture3D.createVAO(texCoords, positions, depth, offsetX, indexes);
 }

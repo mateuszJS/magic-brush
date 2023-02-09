@@ -1,7 +1,7 @@
 import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
 import { State } from "initCreator";
 import MiniatureVideo from "models/Video/MiniatureVideo";
-import { drawSprite } from "programs";
+import { drawTexture3D } from "programs";
 import { canvasMatrix } from "programs/canvasMatrix";
 import setupRenderTarget from "renders/setupRenderTarget";
 import { skeletonSize } from "UI";
@@ -37,7 +37,6 @@ export default class Timeline {
     // width including partially visible frames on the right and left side
 
     const maxMinisQuantity = Math.ceil(widthWithHidden / MINI_SIZE);
-    console.log("max", maxMinisQuantity);
     this.vao = getAttrs(maxMinisQuantity, videoWidth, videoHeight);
   }
 
@@ -46,13 +45,12 @@ export default class Timeline {
     const start = performance.now();
     const startX = getStartX(state.currTime);
     const startTime = getStartTime(state.currTime);
-    const maxWidthBySize = skeletonSize.timeline.width - startX;
-    const maxWidthByTime = (state.video.duration - startTime) / MS_PER_PIXEL;
 
-    const widthWithHidden = skeletonSize.timeline.width + 2 * MINI_SIZE;
-    // width including partially visible frames on the right and left side
-
-    const minisQuantity = Math.ceil(widthWithHidden / MINI_SIZE);
+    const minisEnd =
+      skeletonSize.timeline.width / 2 +
+      (state.video.duration - state.currTime) / MS_PER_PIXEL;
+    const endMinis = Math.min(skeletonSize.timeline.width, minisEnd);
+    const minisQuantity = Math.ceil((endMinis - startX) / MINI_SIZE);
 
     /* setup 3x texture */
     const textureUnit = 0;
@@ -62,10 +60,10 @@ export default class Timeline {
     /* collect all attributes for instance drawing */
     for (let i = 0; i < minisQuantity; i++) {
       const time = startTime + i * MS_PER_MINI;
-      state.video.getMiniature(time, () => state.refresh());
+      state.video.requestFrame(time, state.refresh, true);
     }
 
-    drawSprite.setup(
+    drawTexture3D.setup(
       this.vao,
       textureUnit,
       m3.translate(canvasMatrix, startX, skeletonSize.timeline.y),
@@ -86,22 +84,21 @@ export default class Timeline {
     avgNumber++;
 
     if (avgNumber % 60 === 0) {
-      console.log("avg", avgValue / avgNumber);
+      // console.log("avg", avgValue / avgNumber);
     }
-
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      startX +
-        (minisQuantity - 1) * MINI_SIZE +
-        (((state.video.duration - startTime) / MS_PER_PIXEL) % MINI_SIZE),
-      gl.drawingBufferHeight -
-        skeletonSize.timeline.y -
-        skeletonSize.timeline.height,
-      MINI_SIZE,
-      MINI_SIZE
-    );
-    gl.clearColor(0, 0, 0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.disable(gl.SCISSOR_TEST);
+    if (minisEnd < skeletonSize.timeline.width) {
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(
+        minisEnd,
+        gl.drawingBufferHeight -
+          skeletonSize.timeline.y -
+          skeletonSize.timeline.height,
+        MINI_SIZE,
+        MINI_SIZE
+      );
+      gl.clearColor(0, 0, 0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.disable(gl.SCISSOR_TEST);
+    }
   }
 }

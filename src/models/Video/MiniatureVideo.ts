@@ -7,7 +7,8 @@ const gl = window.gl;
 
 const getDepthFromTime = (timeMs: number) =>
   Math.ceil(timeMs / MS_PER_PIXEL / MINI_SIZE);
-
+let avgNumber = 0;
+let avgValue = 0;
 export default class MiniatureVideo {
   private _width?: number;
   private _height?: number;
@@ -18,9 +19,12 @@ export default class MiniatureVideo {
     time: number;
     callback: VoidFunction;
     isFetching: boolean;
+    cache: boolean;
   }[]; // includes times
   public textureAtlas: WebGLTexture;
   private fetchedFramesMs: number[];
+  public isPlaying: boolean;
+  public sourceReady: boolean; // indicates if first frame is available while playing video(we don't want to render a frame right after updating video time, video will still contain last rendered frame)
 
   constructor(
     url: string,
@@ -64,15 +68,29 @@ export default class MiniatureVideo {
 
     html.playsInline = true;
     html.muted = true;
-    html.loop = true;
+    html.loop = false;
     html.src = url;
     html.preload = "auto";
+    // TODO: test the performance
+    html.preload = "none";
 
     this.html = html;
 
     this.textureAtlas = new Texture();
     this.requestedFrames = [];
     this.fetchedFramesMs = [];
+    this.isPlaying = false;
+    this.sourceReady = false;
+
+    this.html.addEventListener("ended", this.pause);
+  }
+
+  set currTime(time: number) {
+    this.html.currentTime = time / 1000;
+  }
+
+  get currTime() {
+    return this.html.currentTime * 1000;
   }
 
   // returns duration of the video in ms
@@ -106,8 +124,20 @@ export default class MiniatureVideo {
     return this._height;
   }
 
-  private fetchAnotherRequestedFrame() {
-    const start = performance.now();
+  private getVideoData() {
+    const tmpCanvas = document.createElement("canvas");
+    // TODO: maybe we can decrease the size! I think we can!
+    // decrease to min required by the screen OR to video size(if is smaller than screen)
+    tmpCanvas.width = this.html.videoWidth;
+    tmpCanvas.height = this.html.videoHeight;
+    const ctx = tmpCanvas.getContext("2d");
+    if (!ctx) throw Error("NO 2D CONTEXT FOR TEMPORAL CANVAS");
+    ctx.drawImage(this.html, 0, 0);
+    return ctx.getImageData(0, 0, this.html.videoWidth, this.html.videoHeight)
+      .data;
+  }
+
+  private fetchNextFrame() {
     const currTime = this.getCurrTime();
 
     const frameDetails = this.requestedFrames.reduce((accFrame, frame) => {
@@ -119,37 +149,52 @@ export default class MiniatureVideo {
       return accFrame;
     });
 
-    const html = this.html;
-    html.currentTime = Math.max(1, frameDetails.time) / 1000; // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
+    this.currTime = Math.max(1, frameDetails.time); // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
     frameDetails.isFetching = true;
     // https://web.dev/requestvideoframecallback-rvfc/
 
-    html.requestVideoFrameCallback((now, metadata) => {
+    this.html.requestVideoFrameCallback((now, metadata) => {
       // metadata.presentedFrames - number of frames submitted for composition since last requestVideoFrameCallback, usually is 1.
       // metadata.mediaTime - like video.currentTime, in seconds
 
-      this.fetchedFramesMs.push(frameDetails.time);
+      if (this.isPlaying) {
+        frameDetails.isFetching = false;
+        return; // we don't want to complicate code by
+        // implementing canceling the requestVideoFrameCallback once video start playing, so
+        // we will just avoid the effect of requestVideoFrameCallback
+      }
 
-      const end = performance.now();
-      // console.log("performance", end - start);
       this.requestedFrames = this.requestedFrames.filter(
         (frame) => frame.time !== frameDetails.time
       );
-      const zOffset = getDepthFromTime(frameDetails.time); // make sure it's <0. Safari thrown error that sometimes it is less than 0
-      gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.textureAtlas);
-      gl.texSubImage3D(
-        gl.TEXTURE_2D_ARRAY,
-        0,
-        0,
-        0,
-        zOffset,
-        this.width,
-        this.height,
-        1,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        html
-      );
+
+      if (frameDetails.cache) {
+        const start = performance.now();
+        this.fetchedFramesMs.push(frameDetails.time);
+
+        const zOffset = getDepthFromTime(frameDetails.time); // make sure it's <0. Safari thrown error that sometimes it is less than 0
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.textureAtlas);
+        gl.texSubImage3D(
+          gl.TEXTURE_2D_ARRAY,
+          0,
+          0,
+          0,
+          zOffset,
+          this.width,
+          this.height,
+          1,
+          gl.RGBA, // try to use jsut RGB
+          gl.UNSIGNED_BYTE,
+          this.html
+        );
+        //208.6079999923706 - with pixel buffer, now it's 199.1639999997616
+        //124.86400000691414  reading from raw video
+        const end = performance.now();
+        avgValue += end - start;
+        avgNumber++;
+
+        // console.log("avg", avgValue / avgNumber);
+      }
 
       /* COPY PIXELS FROM CURRENT FRAME BUFFER INTO TEXTURE */
       // frameDetails.texture.fill(this.copyFBO);
@@ -157,33 +202,46 @@ export default class MiniatureVideo {
       frameDetails.callback();
 
       if (this.requestedFrames.length > 0) {
-        this.fetchAnotherRequestedFrame();
+        this.fetchNextFrame();
       }
     });
-    // html.pause();
   }
 
-  private getFrame(msOffset: number, callback: VoidFunction) {
+  private addFrameToQueue(
+    msOffset: number,
+    callback: VoidFunction,
+    cache: boolean
+  ) {
     const alreadyExists = this.requestedFrames.some(
       (frame) => frame.time === msOffset
     );
 
     if (alreadyExists) return;
+
     this.requestedFrames.push({
       time: msOffset,
       callback,
       isFetching: false,
+      cache,
     });
 
-    if (this.requestedFrames.length === 1) {
-      // so it's an item that we just pushed
-      this.fetchAnotherRequestedFrame();
+    const isAnyDuringFetch = this.requestedFrames.some(
+      (frame) => frame.isFetching
+    );
+    if (!isAnyDuringFetch) {
+      this.fetchNextFrame();
     }
   }
 
-  public getMiniature(msOffset: number, callback: VoidFunction) {
+  public requestFrame(
+    msOffset: number,
+    callback: VoidFunction,
+    cache: boolean
+  ) {
+    if (this.isPlaying) return; // when video is playing we don't want to disrupt it with changing currentTime
+
     if (!this.fetchedFramesMs.includes(msOffset)) {
-      this.getFrame(msOffset, callback);
+      this.addFrameToQueue(msOffset, callback, cache);
     }
   }
 
@@ -192,4 +250,20 @@ export default class MiniatureVideo {
       (frame) => !frame.isFetching
     );
   }
+
+  public play(time: number) {
+    this.currTime = time;
+    this.html.play();
+    this.isPlaying = true;
+
+    this.html.requestVideoFrameCallback(() => {
+      this.sourceReady = true;
+    });
+  }
+
+  public pause = () => {
+    this.html.pause();
+    this.isPlaying = false;
+    this.sourceReady = false;
+  };
 }

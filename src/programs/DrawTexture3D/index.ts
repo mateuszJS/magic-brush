@@ -15,7 +15,7 @@ const attrs = {
 } as const;
 // because all DrawSprite programs will share same attr locations, we can also share VAO
 
-export default class DrawSprite {
+export default class DrawTexture3D {
   private program: WebGLProgram;
   private texUniform: WebGLUniformLocation;
   private matrixUniform: WebGLUniformLocation;

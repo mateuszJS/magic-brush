@@ -18,6 +18,11 @@ declare module "*.mp4" {
   export default content;
 }
 
+declare module "*.svg" {
+  const content: string;
+  export default content;
+}
+
 type Matrix3 = [
   number,
   number,

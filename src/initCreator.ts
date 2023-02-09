@@ -1,11 +1,12 @@
 import "./styles/index.scss";
-import { initUI, subscribeTimelineScroll, updateTimelineWidth } from "UI";
+import { initUI, updateTimelineScroll, updateTimelineWidth } from "UI";
 import { calcMatrix } from "programs/canvasMatrix";
 import resizeCanvas from "utils/resizeCanvas";
 import { MS_PER_PIXEL } from "consts";
 import Timeline from "Timeline";
 import MiniatureVideo from "models/Video/MiniatureVideo";
 import Preview from "Preview";
+import { updateToolbar } from "UI/createToolbar";
 
 interface SnowEffect {}
 
@@ -32,9 +33,25 @@ export class State {
     );
   }
 
-  public refresh() {
+  public playVideo = () => {
+    this.video.play(this.currTime);
+    updateToolbar(this);
+  };
+
+  public pauseVideo = () => {
+    this.video.pause();
+    updateToolbar(this);
+    this.refresh();
+  };
+
+  public refresh = () => {
     this.needsRefresh = true;
-  }
+  };
+
+  public updateCurrTime = (time: number) => {
+    this.currTime = time;
+    this.refresh();
+  };
 }
 
 function runCreator(state: State) {
@@ -49,6 +66,16 @@ function runCreator(state: State) {
     const { needsRefresh } = state;
     state.needsRefresh = false;
 
+    if (state.video.isPlaying) {
+      state.updateCurrTime(state.video.currTime);
+      updateTimelineScroll(state);
+      /*
+        1. we update scroll position
+        2. It imitates user interaction, so event for changing scroll is fired
+        3. That scroll event update currTime and refresh in the state
+      */
+    }
+
     if (needsRefresh) {
       preview.render(state);
       timeline.render(state);
@@ -59,6 +86,20 @@ function runCreator(state: State) {
 
   requestAnimationFrame(draw);
 }
+
+// alberta -> 32.78%
+// british colombia -> 33.21%
+// manitoba -> 37.58%
+// new brunswick -> 37.23%
+// newfoundland -> 37.0.5%
+// northwest territories -> 32.76%
+// nova scotia -> 38.70%
+// nunavut -> 30.43%
+// ontario -> 35.61%
+// prince edward island -> 38.15%
+// quebec -> 40.00%
+// saskatchewan -> 34.68%
+// yukon -> 32.14%
 
 function onResize() {
   const vh = window.innerHeight * 0.01;
@@ -71,9 +112,5 @@ export default function initCreator(videoUrl: string) {
   const state = new State(videoUrl, runCreator);
   onResize();
   window.addEventListener("resize", onResize);
-  initUI(); // UI initialize skeletonSize, what has to be calculated AFTER setting --vh variable in css to make measurements correctly
-  subscribeTimelineScroll((scroll) => {
-    state.currTime = scroll * MS_PER_PIXEL;
-    state.refresh();
-  });
+  initUI(state); // UI initialize skeletonSize, what has to be calculated AFTER setting --vh variable in css to make measurements correctly
 }

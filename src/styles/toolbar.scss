@@ -1,0 +1,26 @@
+.toolbar {
+  grid-area: toolbar;
+  
+  display: flex;
+  height: 100px;
+
+  outline: 5px solid lime;
+
+  button {
+    padding: 10px 30px;
+    transition: background 0.3s ease;
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  svg {
+    display: block;
+    height: 100%;
+    fill: white;
+  }
+
+  .hide {
+    display: none;
+  }
+}
