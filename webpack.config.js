@@ -9,7 +9,7 @@ module.exports = {
     static: "./dist",
   },
   resolve: {
-    extensions: [".ts", ".js", ".frag", ".vert", ".png", ".mp4"],
+    extensions: [".ts", ".js", ".frag", ".vert", ".png", ".mp4", ".svg"],
     modules: [path.resolve(__dirname, "src"), "node_modules"], // to use absolute path in src
   },
   module: {
@@ -20,7 +20,7 @@ module.exports = {
         exclude: /node_modules/,
       },
       {
-        test: /\.(frag|vert)$/,
+        test: /\.(frag|vert|svg)$/,
         type: "asset/source",
       },
       {
@@ -28,7 +28,7 @@ module.exports = {
         use: ["style-loader", "css-loader", "sass-loader"],
       },
       {
-        test: /\.(png|svg|jpg|jpeg|gif|mp4)$/,
+        test: /\.(png|jpg|jpeg|gif|mp4)$/,
         type: "asset/resource",
       },
     ],

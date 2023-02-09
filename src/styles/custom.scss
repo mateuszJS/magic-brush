@@ -2,29 +2,45 @@
 
 /* OUR CUSTOM STYLES */
 
+*, *:before, *:after {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(21, 255, 0);
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(255, 0, 0);
+}
+
 :root {
   --color-background: #000;
   --space: 50px;
 }
 
 body {
-  width: 100vw;
-  height: 100vh;
   background: var(--color-background);
 }
 
 main {
   width: 100vw;
-  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   
   display: grid;
-  grid-template-rows: 1fr var(--space) 100px var(--space) 100px;
+  grid-template-rows: 1fr var(--space) 100px var(--space) 100px var(--space);
 
   grid-template-areas: "preview"
     "."
     "timeline"
     "."
-    "edit-menu";
+    "toolbar";
 
   justify-items: stretch;
 }
@@ -63,7 +79,7 @@ canvas {
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   width: 100vw;
   pointer-events: none;
   // for some reason gl doesn't scale when we use bottom: 0, right: 0.
@@ -88,12 +104,6 @@ canvas {
 
 .add-btn input {
   opacity: 0;
-}
-
-.edit-menu {
-  grid-area: edit-menu;
-  outline: 5px solid lime;
-  height: 100px;
 }
 
 body {

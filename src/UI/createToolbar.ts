@@ -1,16 +1,33 @@
-// import captureStreamFromCanvas from "../utils/captureStreamFromCanvas";
+import playSvg from "./icons/play-icon.svg";
+import pauseSvg from "./icons/pause-icon.svg";
+import { State } from "initCreator";
 
-let isPanelOpen = window.localStorage.getItem("isPanelOpen") === "true";
+const playBtn = document.createElement("button");
+const pauseBtn = document.createElement("button");
 
-const panelContent = `
-  MENU
-`;
+export function updateToolbar(state: State) {
+  if (state.video.isPlaying) {
+    pauseBtn.classList.remove("hide");
+    playBtn.classList.add("hide");
+  } else {
+    pauseBtn.classList.add("hide");
+    playBtn.classList.remove("hide");
+  }
+}
 
-export default function initEditMenu(mainContainer: HTMLElement) {
-  const panelNode = document.createElement("ul");
-  panelNode.innerHTML = panelContent;
-  panelNode.classList.add("edit-menu");
-  mainContainer.appendChild(panelNode);
+export default function createToolbar(state: State) {
+  const root = document.createElement("ul");
+  root.classList.add("toolbar");
+
+  playBtn.innerHTML = playSvg;
+  pauseBtn.innerHTML = pauseSvg;
+  pauseBtn.classList.add("hide");
+
+  playBtn.addEventListener("click", state.playVideo);
+  pauseBtn.addEventListener("click", state.pauseVideo);
+
+  root.appendChild(playBtn);
+  root.appendChild(pauseBtn);
 
   // const updateHTML = () => {
   //   panelNode.classList[isPanelOpen ? "remove" : "add"]("visible");
@@ -37,4 +54,6 @@ export default function initEditMenu(mainContainer: HTMLElement) {
   //   stopRecordingCallback?.();
   //   stopRecordingCallback = null;
   // });
+
+  return root;
 }

@@ -1,80 +1,137 @@
 import { skeletonSize } from "UI";
-import Texture from "models/Texture";
-import { drawSprite } from "programs";
-import renderSprite from "renders/renderSprite";
+import { drawTexture, drawTexture3D } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 import m3 from "utils/m3";
-import IMAGE from "./IMG_6518.png";
 import { State } from "initCreator";
-import FullFrameVideo from "models/Video/FullFrameVideo";
 import { canvasMatrix } from "programs/canvasMatrix";
+import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
+import Texture from "models/Texture";
 
 export default class Preview {
+  private vao2D: WebGLVertexArrayObject;
+  private vao3D: WebGLVertexArrayObject;
+  private prevTime: number;
   private texture: Texture;
-  private video: FullFrameVideo;
-  private vao: WebGLVertexArrayObject | null;
+  private isFetching: boolean;
+  private lastFetchFrameTime: number;
 
-  constructor(videoUrl: string, state: State) {
+  constructor(videoWidth: number, videoHeight: number) {
+    const texCoords = new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]);
+    const aspect = videoWidth / videoHeight;
+    const positions = new Float32Array([
+      0,
+      0,
+      0,
+      skeletonSize.preview.height,
+      skeletonSize.preview.height * aspect,
+      skeletonSize.preview.height,
+      skeletonSize.preview.height * aspect,
+      0,
+    ]);
+
+    const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
+    const depth = new Float32Array([0]);
+    const offsetX = new Float32Array([0]);
+
+    this.vao2D = drawTexture.createVAO(texCoords, positions, indexes);
+    this.vao3D = drawTexture3D.createVAO(
+      texCoords,
+      positions,
+      depth,
+      offsetX,
+      indexes
+    );
+    this.prevTime = 0;
     this.texture = new Texture();
-    this.texture.fill({ width: 1, height: 1, color: [0.1, 0.1, 0.1, 1] });
-    this.video = new FullFrameVideo(videoUrl, () => {
-      const texCoords = new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]);
-      const aspect = this.video.width / this.video.height;
-      const positions = new Float32Array([
-        0,
-        0,
-        0,
-        skeletonSize.preview.height,
-        skeletonSize.preview.height * aspect,
-        skeletonSize.preview.height,
-        skeletonSize.preview.height * aspect,
-        0,
-      ]);
-
-      const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
-      const vao = drawSprite.createVAO(texCoords, positions, indexes);
-      this.vao = vao;
-
-      state.refresh();
-    });
-    this.vao = null;
+    this.isFetching = false;
+    this.lastFetchFrameTime = Infinity;
   }
 
-  private drawFrame() {
-    if (!this.vao) {
-      throw Error(
-        "There is no vao initialized yet! Vao is initialized once video is ready."
-      );
-    }
+  drawFromCache(state: State, matrix: Matrix3, time: number) {
+    // console.log("render from cache");
     const gl = window.gl;
-    const texture = this.texture;
+    /* setup 3x texture */
+    const textureUnit = 0;
+    gl.activeTexture(gl.TEXTURE0 + textureUnit); // activate certain texture unit
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, state.video.textureAtlas);
 
-    drawSprite.setup(
-      this.vao,
-      texture.bind(0),
-      m3.translate(
-        canvasMatrix,
-        (gl.drawingBufferWidth -
-          (skeletonSize.preview.height * this.video.width) /
-            this.video.height) *
-          0.5,
-        0
-      )
+    drawTexture3D.setup(
+      this.vao3D,
+      textureUnit,
+      matrix,
+      Math.ceil(time / MS_PER_PIXEL / MINI_SIZE)
     );
     setupRenderTarget(null);
-    renderSprite();
-    // requestAnimationFrame(draw);
-    // Tell it to use our program (pair of shaders)
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, 1);
+    gl.bindVertexArray(null);
   }
 
   render(state: State) {
-    if (!this.video.isReady) return;
+    const gl = window.gl;
+    const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75;
+    const threshold = Math.min(100, speedThreshold);
+    this.prevTime = state.currTime;
+    // console.log("threshold", threshold);
+    const closestCachedTime =
+      Math.round(state.currTime / MS_PER_MINI) * MS_PER_MINI;
+    const distanceToClosestCacheTime = Math.abs(
+      state.currTime - closestCachedTime
+    );
 
-    this.video.requestFrame(state.currTime, () => {
-      this.texture.fill(this.video);
-      state.refresh();
-    });
+    const matrix = m3.translate(
+      canvasMatrix,
+      (gl.drawingBufferWidth -
+        (skeletonSize.preview.height * state.video.width) /
+          state.video.height) *
+        0.5,
+      0
+    );
 
-    this.drawFrame(); // you cannot keep drawing texture which points to video. It will render whatever video is processing right now
+    if (state.video.isPlaying && state.video.sourceReady) {
+      this.lastFetchFrameTime = state.currTime;
+      this.texture.fill(state.video);
+      drawTexture.setup(this.vao2D, this.texture.bind(0), matrix);
+      setupRenderTarget(null);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+      gl.bindVertexArray(null);
+      return;
+    }
+
+    // console.log(distanceToClosestCacheTime, threshold);
+    const distanceToLastFrame = Math.abs(
+      this.lastFetchFrameTime - state.currTime
+    );
+    if (
+      distanceToClosestCacheTime <= threshold &&
+      distanceToClosestCacheTime < distanceToLastFrame
+    ) {
+      state.video.requestFrame(closestCachedTime, state.refresh, true);
+      this.drawFromCache(state, matrix, closestCachedTime);
+    } else {
+      if (!this.isFetching && distanceToLastFrame > 30) {
+        this.isFetching = true;
+        const time = state.currTime;
+        state.video.requestFrame(
+          time,
+          () => {
+            this.isFetching = false;
+            this.lastFetchFrameTime = time;
+            this.texture.fill(state.video);
+            state.refresh();
+          },
+          false
+        );
+      }
+
+      if (this.isFetching && distanceToClosestCacheTime < distanceToLastFrame) {
+        // draw from cache
+        this.drawFromCache(state, matrix, closestCachedTime);
+      } else {
+        drawTexture.setup(this.vao2D, this.texture.bind(0), matrix);
+        setupRenderTarget(null);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+        gl.bindVertexArray(null);
+      }
+    }
   }
 }

@@ -1,38 +1,25 @@
 import shaderVertexSource from "./index.vert";
 import shaderFragmentSource from "./index.frag";
-import { setAttribute, setIndex } from "../utils/createAttribute";
+import { setAttribute, setIndex } from "../utils/setAttribute";
 import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
-import { canvasMatrix } from "programs/canvasMatrix";
 import linkProgram from "programs/utils/linkProgram";
-
-const texCoordDefault = new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]);
-const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
-
-// function getPosition(input: InputData['position']) {
-//   const gl = window.gl
-//   const [x, y, width, height] = input || [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]
-
-//   return new Float32Array([
-//     x, y,
-//     x, y + height,
-//     x + width, y + height,
-//     x + width, y
-//   ])
-// }
 
 // keys are attributes names, values are location
 const attrs = {
   a_position: 0,
   a_texCoord: 1,
+  aOffsetDepth: 2,
+  aOffsetX: 3,
 } as const;
 // because all DrawSprite programs will share same attr locations, we can also share VAO
 
-export default class DrawSprite {
+export default class DrawTexture3D {
   private program: WebGLProgram;
   private texUniform: WebGLUniformLocation;
   private matrixUniform: WebGLUniformLocation;
+  private startDepth: WebGLUniformLocation;
 
   constructor() {
     const gl = window.gl;
@@ -57,12 +44,15 @@ export default class DrawSprite {
 
     this.texUniform = getUniform(this.program, "u_texture");
     this.matrixUniform = getUniform(this.program, "u_matrix");
+    this.startDepth = getUniform(this.program, "uStartDepth");
   }
 
   // VAO - vertex array object
   public createVAO(
     texCoord: Float32Array,
     position: Float32Array,
+    depth: Float32Array,
+    offsetX: Float32Array,
     indexes: Uint16Array
   ): WebGLVertexArrayObject {
     // if you are planning to use this
@@ -82,8 +72,14 @@ export default class DrawSprite {
 
     setAttribute(attrs.a_position, position);
     setAttribute(attrs.a_texCoord, texCoord);
-    // if you will need to edit attributes, just bind the buffer and update the data!
+    setAttribute(attrs.aOffsetDepth, depth, 1);
+    setAttribute(attrs.aOffsetX, offsetX, 1);
     setIndex(indexes);
+
+    gl.vertexAttribDivisor(attrs.a_position, 0);
+    gl.vertexAttribDivisor(attrs.a_texCoord, 0);
+    gl.vertexAttribDivisor(attrs.aOffsetDepth, 1);
+    gl.vertexAttribDivisor(attrs.aOffsetX, 1);
 
     gl.bindVertexArray(null);
 
@@ -93,12 +89,14 @@ export default class DrawSprite {
   public setup(
     vao: WebGLVertexArrayObject,
     texUnitIndex: number,
-    matrix: Matrix3
+    matrix: Matrix3,
+    startDepth: number
   ) {
     const gl = window.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(vao);
     gl.uniform1i(this.texUniform, texUnitIndex);
+    gl.uniform1f(this.startDepth, startDepth);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
   }
 }
