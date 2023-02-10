@@ -1,6 +1,6 @@
 import shaderVertexSource from "./index.vert";
 import shaderFragmentSource from "./index.frag";
-import { setAttribute, setIndex } from "../utils/setAttribute";
+import { setAttribute, setIndex } from "../utils/attributes";
 import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
@@ -70,16 +70,11 @@ export default class DrawTexture3D {
 
     gl.bindVertexArray(vao);
 
-    setAttribute(attrs.a_position, position);
-    setAttribute(attrs.a_texCoord, texCoord);
-    setAttribute(attrs.aOffsetDepth, depth, 1);
-    setAttribute(attrs.aOffsetX, offsetX, 1);
+    setAttribute(attrs.a_position, 2, "vertex", position);
+    setAttribute(attrs.a_texCoord, 2, "vertex", texCoord);
+    setAttribute(attrs.aOffsetDepth, 1, "instance", depth);
+    setAttribute(attrs.aOffsetX, 1, "instance", offsetX);
     setIndex(indexes);
-
-    gl.vertexAttribDivisor(attrs.a_position, 0);
-    gl.vertexAttribDivisor(attrs.a_texCoord, 0);
-    gl.vertexAttribDivisor(attrs.aOffsetDepth, 1);
-    gl.vertexAttribDivisor(attrs.aOffsetX, 1);
 
     gl.bindVertexArray(null);
 
@@ -89,7 +84,7 @@ export default class DrawTexture3D {
   public setup(
     vao: WebGLVertexArrayObject,
     texUnitIndex: number,
-    matrix: Matrix3,
+    matrix: Mat3,
     startDepth: number
   ) {
     const gl = window.gl;

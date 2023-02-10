@@ -1,12 +1,12 @@
 import Texture from "models/Texture";
-import { drawShape } from "programs";
+// import { drawShape } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 
 export default function drawTriangle(video: HTMLVideoElement) {
   const texture = new Texture();
   texture.fill({ width: 100, height: 200, html: video });
 
-  drawShape.setup(texture.bind(0));
+  // drawShape.setup(texture.bind(0));
 
   const gl = window.gl;
   const arrayBufferLocation = gl.createBuffer();

@@ -7,8 +7,11 @@ import Timeline from "Timeline";
 import MiniatureVideo from "models/Video/MiniatureVideo";
 import Preview from "Preview";
 import { updateToolbar } from "UI/createToolbar";
+import Effects from "Effects";
 
-interface SnowEffect {}
+interface SnowEffect {
+  curve: Point[];
+}
 
 export class State {
   public snow: SnowEffect | null;
@@ -52,6 +55,18 @@ export class State {
     this.currTime = time;
     this.refresh();
   };
+
+  public brushMode = () => {
+    this.pauseVideo();
+    this.snow = {
+      curve: [
+        { id: 1, x: 100, y: 100 },
+        { id: 2, x: 100, y: 150 },
+        { id: 3, x: 400, y: 100 },
+        { id: 4, x: 300, y: 150 },
+      ],
+    };
+  };
 }
 
 function runCreator(state: State) {
@@ -61,6 +76,7 @@ function runCreator(state: State) {
     state.video.width,
     state.video.height
   );
+  const effect = new Effects();
 
   function draw(now: DOMHighResTimeStamp) {
     const { needsRefresh } = state;
@@ -78,6 +94,7 @@ function runCreator(state: State) {
 
     if (needsRefresh) {
       preview.render(state);
+      effect.render(state);
       timeline.render(state);
     }
     requestAnimationFrame(draw);
@@ -86,20 +103,6 @@ function runCreator(state: State) {
 
   requestAnimationFrame(draw);
 }
-
-// alberta -> 32.78%
-// british colombia -> 33.21%
-// manitoba -> 37.58%
-// new brunswick -> 37.23%
-// newfoundland -> 37.0.5%
-// northwest territories -> 32.76%
-// nova scotia -> 38.70%
-// nunavut -> 30.43%
-// ontario -> 35.61%
-// prince edward island -> 38.15%
-// quebec -> 40.00%
-// saskatchewan -> 34.68%
-// yukon -> 32.14%
 
 function onResize() {
   const vh = window.innerHeight * 0.01;

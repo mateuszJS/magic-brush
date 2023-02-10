@@ -47,7 +47,7 @@ export default class Preview {
     this.lastFetchFrameTime = Infinity;
   }
 
-  drawFromCache(state: State, matrix: Matrix3, time: number) {
+  drawFromCache(state: State, matrix: Mat3, time: number) {
     // console.log("render from cache");
     const gl = window.gl;
     /* setup 3x texture */

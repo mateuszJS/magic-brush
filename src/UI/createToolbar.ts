@@ -1,5 +1,6 @@
 import playSvg from "./icons/play-icon.svg";
 import pauseSvg from "./icons/pause-icon.svg";
+import brushSvg from "./icons/brush-icon.svg";
 import { State } from "initCreator";
 
 const playBtn = document.createElement("button");
@@ -26,8 +27,9 @@ export default function createToolbar(state: State) {
   playBtn.addEventListener("click", state.playVideo);
   pauseBtn.addEventListener("click", state.pauseVideo);
 
-  root.appendChild(playBtn);
-  root.appendChild(pauseBtn);
+  const brushBtn = document.createElement("button");
+  brushBtn.innerHTML = brushSvg;
+  brushBtn.addEventListener("click", state.brushMode);
 
   // const updateHTML = () => {
   //   panelNode.classList[isPanelOpen ? "remove" : "add"]("visible");
@@ -54,6 +56,9 @@ export default function createToolbar(state: State) {
   //   stopRecordingCallback?.();
   //   stopRecordingCallback = null;
   // });
+  root.appendChild(playBtn);
+  root.appendChild(pauseBtn);
+  root.appendChild(brushBtn);
 
   return root;
 }
