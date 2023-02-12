@@ -1,5 +1,6 @@
 import shaderVertexSource from "./index.vert";
 import shaderFragmentSource from "./index.frag";
+import pickShaderFragmentSource from "./pick.frag";
 import { setAttribute, setIndex } from "../utils/attributes";
 import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
@@ -37,7 +38,7 @@ export default class DrawCircle {
   private program: WebGLProgram;
   private matrixUniform: WebGLUniformLocation;
 
-  constructor() {
+  constructor(isPicking: boolean) {
     const gl = window.gl;
     const vertexShader: WebGLShader = compileShader(
       gl.VERTEX_SHADER,
@@ -45,7 +46,7 @@ export default class DrawCircle {
     );
     const fragmentShader: WebGLShader = compileShader(
       gl.FRAGMENT_SHADER,
-      shaderFragmentSource
+      isPicking ? pickShaderFragmentSource : shaderFragmentSource
     );
 
     this.program = createProgram(gl, vertexShader, fragmentShader);
@@ -61,10 +62,6 @@ export default class DrawCircle {
 
   // VAO - vertex array object
   public createVAO(): EditableVao {
-    // if you are planning to use this
-
-    // https://webgl2fundamentals.org/webgl/lessons/webgl1-to-webgl2.html
-
     const gl = window.gl;
     const vao = gl.createVertexArray();
 

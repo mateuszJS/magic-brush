@@ -7,10 +7,18 @@ import Timeline from "Timeline";
 import MiniatureVideo from "models/Video/MiniatureVideo";
 import Preview from "Preview";
 import { updateToolbar } from "UI/createToolbar";
-import Effects from "Effects";
+import Handles from "Handles";
+import { splitFloatIntoVec3 } from "utils/id";
+
+interface HandlePoint {
+  id: number;
+  idVec4: vec4;
+  x: number;
+  y: number;
+}
 
 interface SnowEffect {
-  curve: Point[];
+  curve: HandlePoint[];
 }
 
 export class State {
@@ -18,11 +26,27 @@ export class State {
   public currTime: number;
   public needsRefresh: boolean; // indicates if we should make an update or not
   public video: MiniatureVideo;
+  // related to mouse interactions
+  public mouseX: number;
+  public mouseY: number;
+  public needsRefreshSelection: boolean;
+  public selectionId: number;
+  public drag: boolean;
+  private mouseOffsetX: number;
+  private mouseOffsetY: number;
 
   constructor(videoUrl: string, onVideoLoaded: (state: State) => void) {
     this.snow = null;
     this.currTime = 0;
     this.needsRefresh = true;
+
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.needsRefreshSelection = false;
+    this.selectionId = 0;
+    this.drag = false;
+    this.mouseOffsetX = 0;
+    this.mouseOffsetY = 0;
 
     this.video = new MiniatureVideo(
       videoUrl,
@@ -34,6 +58,50 @@ export class State {
       },
       () => this.currTime
     );
+  }
+
+  public updateSelectionId(newSelection: number) {
+    if (this.selectionId !== newSelection) {
+      this.selectionId = newSelection;
+      this.refresh();
+    }
+
+    const selectedHandle = this.snow?.curve.find(
+      (point) => point.id === this.selectionId
+    );
+    if (selectedHandle) {
+      this.mouseOffsetX = selectedHandle.x - this.mouseX;
+      this.mouseOffsetY = selectedHandle.y - this.mouseY;
+    }
+  }
+
+  public mousedown = () => {
+    if (this.selectionId) {
+      this.drag = true;
+    }
+  };
+
+  public mouseup = () => {
+    if (this.drag) {
+      this.drag = false;
+    }
+  };
+
+  public updateMousePos(x: number, y: number) {
+    this.mouseX = x;
+    this.mouseY = y;
+    this.needsRefreshSelection = true;
+
+    if (this.drag) {
+      const selectedHandle = this.snow?.curve.find(
+        (point) => point.id === this.selectionId
+      );
+      if (selectedHandle) {
+        selectedHandle.x = this.mouseOffsetX + x;
+        selectedHandle.y = this.mouseOffsetY + y;
+      }
+    }
+    // we have different mouseX and pointX
   }
 
   public playVideo = () => {
@@ -56,16 +124,24 @@ export class State {
     this.refresh();
   };
 
+  private addHandle(id: number, x: number, y: number) {
+    this.snow?.curve.push({
+      id,
+      idVec4: splitFloatIntoVec3(id),
+      x,
+      y,
+    });
+  }
+
   public brushMode = () => {
     this.pauseVideo();
     this.snow = {
-      curve: [
-        { id: 1, x: 100, y: 100 },
-        { id: 2, x: 100, y: 150 },
-        { id: 3, x: 400, y: 100 },
-        { id: 4, x: 300, y: 150 },
-      ],
+      curve: [],
     };
+    this.addHandle(1, 50, 200);
+    this.addHandle(2, 100, 130);
+    this.addHandle(3, 400, 100);
+    this.addHandle(4, 450, 200);
   };
 }
 
@@ -76,7 +152,7 @@ function runCreator(state: State) {
     state.video.width,
     state.video.height
   );
-  const effect = new Effects();
+  const handles = new Handles();
 
   function draw(now: DOMHighResTimeStamp) {
     const { needsRefresh } = state;
@@ -91,10 +167,21 @@ function runCreator(state: State) {
         3. That scroll event update currTime and refresh in the state
       */
     }
+    if (state.drag) {
+      state.refresh();
+    } else if (state.needsRefreshSelection) {
+      const newSelection = handles.updateSelection(
+        state,
+        state.mouseX,
+        state.mouseY
+      );
+      state.updateSelectionId(newSelection);
+      state.needsRefreshSelection = false;
+    }
 
     if (needsRefresh) {
       preview.render(state);
-      effect.render(state);
+      handles.render(state);
       timeline.render(state);
     }
     requestAnimationFrame(draw);

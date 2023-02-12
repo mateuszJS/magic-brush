@@ -38,7 +38,6 @@ type Mat3 = [
 type vec4 = [number, number, number, number];
 
 interface Point {
-  id: number;
   x: number;
   y: number;
 }

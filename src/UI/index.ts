@@ -53,6 +53,15 @@ export function initUI(state: State) {
   const previewContainer = document.createElement("section");
   previewContainer.classList.add("preview");
   mainContainer.appendChild(previewContainer);
+  previewContainer.addEventListener("mousemove", (e) => {
+    // we assume that canvas is places in very top left corner, no offset
+    const mouseX = e.clientX as number;
+    const mouseY = e.clientY as number;
+
+    state.updateMousePos(mouseX, mouseY);
+  });
+  previewContainer.addEventListener("mousedown", state.mousedown);
+  previewContainer.addEventListener("mouseup", state.mouseup);
 
   /* TIMELINE */
   const timelineContainer = document.createElement("section");
