@@ -25,6 +25,7 @@ export default class MiniatureVideo {
   private fetchedFramesMs: number[];
   public isPlaying: boolean;
   public sourceReady: boolean; // indicates if first frame is available while playing video(we don't want to render a frame right after updating video time, video will still contain last rendered frame)
+  private pbo: WebGLBuffer;
 
   constructor(
     url: string,
@@ -33,6 +34,12 @@ export default class MiniatureVideo {
   ) {
     const html = document.createElement("video");
     this.isReady = false;
+    const pbo = gl.createBuffer();
+    if (!pbo)
+      throw Error(
+        "Buffer for pixels was not created! Probably Webgl has lost the context"
+      );
+    this.pbo = pbo;
 
     html.addEventListener("loadedmetadata", () => {
       this.isReady = true;
@@ -50,8 +57,8 @@ export default class MiniatureVideo {
         gl.TEXTURE_2D_ARRAY,
         1, // its not he level, it's the number of levels, you always have at least one
         gl.RGBA8,
-        this.width,
-        this.height,
+        this.width / 4,
+        this.height / 4,
         numberOfMiniatures
       ); // allocating space in the GPU
       gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -59,11 +66,11 @@ export default class MiniatureVideo {
 
       this.textureAtlas = texture;
 
-      if (isMobile) {
-        // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
-        this.html.play();
-        this.html.pause();
-      }
+      // if (isMobile) {
+      // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
+      this.html.play();
+      this.html.pause();
+      // }
 
       cbOnReady(this);
     });
@@ -74,7 +81,7 @@ export default class MiniatureVideo {
     html.src = url;
     html.preload = "auto";
     // TODO: test the performance
-    html.preload = "none";
+    // html.preload = "none";
 
     this.html = html;
 
@@ -174,6 +181,12 @@ export default class MiniatureVideo {
         const start = performance.now();
         this.fetchedFramesMs.push(frameDetails.time);
 
+        gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, this.pbo);
+        gl.bufferData(
+          gl.PIXEL_UNPACK_BUFFER,
+          this.getVideoData(),
+          gl.STATIC_DRAW
+        );
         const zOffset = getDepthFromTime(frameDetails.time); // make sure it's <0. Safari thrown error that sometimes it is less than 0
         gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.textureAtlas);
         gl.texSubImage3D(
@@ -182,20 +195,22 @@ export default class MiniatureVideo {
           0,
           0,
           zOffset,
-          this.width,
-          this.height,
+          this.width / 4,
+          this.height / 4,
           1,
-          gl.RGBA, // try to use jsut RGB
+          gl.RGBA,
           gl.UNSIGNED_BYTE,
-          this.html
+          // this.html
+          0
         );
+        gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
         //208.6079999923706 - with pixel buffer, now it's 199.1639999997616
         //124.86400000691414  reading from raw video
         const end = performance.now();
         avgValue += end - start;
         avgNumber++;
 
-        // console.log("avg", avgValue / avgNumber);
+        console.log("avg", avgValue / avgNumber);
       }
 
       /* COPY PIXELS FROM CURRENT FRAME BUFFER INTO TEXTURE */
