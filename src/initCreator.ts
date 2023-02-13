@@ -9,6 +9,7 @@ import Preview from "Preview";
 import { updateToolbar } from "UI/createToolbar";
 import Handles from "Handles";
 import { splitFloatIntoVec3 } from "utils/id";
+import Effects from "Effects";
 
 interface HandlePoint {
   id: number;
@@ -146,6 +147,7 @@ export class State {
 }
 
 function runCreator(state: State) {
+  const effects = new Effects();
   const preview = new Preview(state.video.width, state.video.height);
   const timeline = new Timeline(
     state.video.duration,
@@ -183,6 +185,7 @@ function runCreator(state: State) {
       preview.render(state);
       handles.render(state);
       timeline.render(state);
+      effects.render(state);
     }
     requestAnimationFrame(draw);
     // Tell it to use our program (pair of shaders)

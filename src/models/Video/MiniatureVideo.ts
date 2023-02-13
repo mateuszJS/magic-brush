@@ -1,5 +1,5 @@
 import Texture from "models/Texture";
-import { MINI_SIZE, MS_PER_PIXEL } from "consts";
+import { MINI_SIZE, MS_PER_PIXEL, isMobile } from "consts";
 
 const PLACEHOLDER_TEX_SIZE = 1;
 
@@ -59,9 +59,11 @@ export default class MiniatureVideo {
 
       this.textureAtlas = texture;
 
-      // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
-      this.html.play();
-      this.html.pause();
+      if (isMobile) {
+        // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
+        this.html.play();
+        this.html.pause();
+      }
 
       cbOnReady(this);
     });

@@ -1,7 +1,7 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder
 
 export default function captureStreamFromCanvas(canvasNode: HTMLCanvasElement) {
-  const stream = canvasNode.captureStream(15);
+  const stream = canvasNode.captureStream(60);
   const recorder = new MediaRecorder(stream);
 
   recorder.addEventListener("dataavailable", finishCapturing);

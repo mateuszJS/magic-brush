@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float; // in WebGL2 precision needs ot be only declared for floats
+precision highp float; // in WebGL2 precision needs ot be only declared for floats
 // you can define default or per variable precision
 
 in vec4 vColor;
