@@ -1,5 +1,6 @@
 import Texture from "models/Texture";
 import { MINI_SIZE, MS_PER_PIXEL, isMobile } from "consts";
+import { getPreviewVideoSize } from "Preview";
 
 const PLACEHOLDER_TEX_SIZE = 1;
 
@@ -9,6 +10,7 @@ const getDepthFromTime = (timeMs: number) =>
   Math.ceil(timeMs / MS_PER_PIXEL / MINI_SIZE);
 let avgNumber = 0;
 let avgValue = 0;
+
 export default class MiniatureVideo {
   private _width?: number;
   private _height?: number;
@@ -26,6 +28,8 @@ export default class MiniatureVideo {
   public isPlaying: boolean;
   public sourceReady: boolean; // indicates if first frame is available while playing video(we don't want to render a frame right after updating video time, video will still contain last rendered frame)
   private pbo: WebGLBuffer;
+  private texWidth: number;
+  private texHeight: number;
 
   constructor(
     url: string,
@@ -46,6 +50,12 @@ export default class MiniatureVideo {
       this._width = html.videoWidth;
       this._height = html.videoHeight;
       this._duration = html.duration * 1000;
+
+      const { width, height } = getPreviewVideoSize(this);
+
+      this.texWidth = width;
+      this.texHeight = height;
+
       // startDate - Returns a Date object representing the current time offset
 
       const texture = gl.createTexture();
@@ -57,8 +67,8 @@ export default class MiniatureVideo {
         gl.TEXTURE_2D_ARRAY,
         1, // its not he level, it's the number of levels, you always have at least one
         gl.RGBA8,
-        this.width / 4,
-        this.height / 4,
+        this.texWidth,
+        this.texHeight,
         numberOfMiniatures
       ); // allocating space in the GPU
       gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -66,14 +76,16 @@ export default class MiniatureVideo {
 
       this.textureAtlas = texture;
 
-      // if (isMobile) {
-      // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
-      this.html.play();
-      this.html.pause();
-      // }
-
       cbOnReady(this);
+
+      if (isMobile) {
+        // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
+        this.html.play();
+        this.html.pause();
+      }
     });
+    this.texWidth = 0;
+    this.texHeight = 0;
 
     html.playsInline = true;
     html.muted = true;
@@ -135,15 +147,12 @@ export default class MiniatureVideo {
 
   private getVideoData() {
     const tmpCanvas = document.createElement("canvas");
-    // TODO: maybe we can decrease the size! I think we can!
-    // decrease to min required by the screen OR to video size(if is smaller than screen)
-    tmpCanvas.width = this.html.videoWidth;
-    tmpCanvas.height = this.html.videoHeight;
+    tmpCanvas.width = this.texWidth;
+    tmpCanvas.height = this.texHeight;
     const ctx = tmpCanvas.getContext("2d");
     if (!ctx) throw Error("NO 2D CONTEXT FOR TEMPORAL CANVAS");
-    ctx.drawImage(this.html, 0, 0);
-    return ctx.getImageData(0, 0, this.html.videoWidth, this.html.videoHeight)
-      .data;
+    ctx.drawImage(this.html, 0, 0, this.texWidth, this.texHeight);
+    return ctx.getImageData(0, 0, this.texWidth, this.texHeight).data;
   }
 
   private fetchNextFrame() {
@@ -161,7 +170,6 @@ export default class MiniatureVideo {
     this.currTime = Math.max(1, frameDetails.time); // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
     frameDetails.isFetching = true;
     // https://web.dev/requestvideoframecallback-rvfc/
-
     this.html.requestVideoFrameCallback((now, metadata) => {
       // metadata.presentedFrames - number of frames submitted for composition since last requestVideoFrameCallback, usually is 1.
       // metadata.mediaTime - like video.currentTime, in seconds
@@ -195,17 +203,15 @@ export default class MiniatureVideo {
           0,
           0,
           zOffset,
-          this.width / 4,
-          this.height / 4,
+          this.texWidth,
+          this.texHeight,
           1,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          // this.html
           0
         );
         gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
-        //208.6079999923706 - with pixel buffer, now it's 199.1639999997616
-        //124.86400000691414  reading from raw video
+
         const end = performance.now();
         avgValue += end - start;
         avgNumber++;
@@ -255,7 +261,9 @@ export default class MiniatureVideo {
     callback: VoidFunction,
     cache: boolean
   ) {
-    if (this.isPlaying) return; // when video is playing we don't want to disrupt it with changing currentTime
+    if (this.isPlaying) {
+      return; // when video is playing we don't want to disrupt it with changing currentTime
+    }
 
     if (!this.fetchedFramesMs.includes(msOffset)) {
       this.addFrameToQueue(msOffset, callback, cache);

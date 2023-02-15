@@ -13,7 +13,12 @@ const attrs = {
 } as const;
 // because all DrawSprite programs will share same attr locations, we can also share VAO
 
-export default class DrawTexture3D {
+interface EditableVao {
+  vao: WebGLVertexArrayObject;
+  updatePosition: (data: BufferSource) => void;
+}
+
+export default class DrawTexture {
   private program: WebGLProgram;
   private texUniform: WebGLUniformLocation;
   private matrixUniform: WebGLUniformLocation;
@@ -48,7 +53,7 @@ export default class DrawTexture3D {
     texCoord: Float32Array,
     position: Float32Array,
     indexes: Uint16Array
-  ): WebGLVertexArrayObject {
+  ): EditableVao {
     // if you are planning to use this
 
     // https://webgl2fundamentals.org/webgl/lessons/webgl1-to-webgl2.html
@@ -64,13 +69,21 @@ export default class DrawTexture3D {
 
     gl.bindVertexArray(vao);
 
-    setAttribute(attrs.a_position, 2, undefined, position);
+    const updatePosition = setAttribute(
+      attrs.a_position,
+      2,
+      undefined,
+      position
+    );
     setAttribute(attrs.a_texCoord, 2, undefined, texCoord);
     setIndex(indexes);
 
     gl.bindVertexArray(null);
 
-    return vao;
+    return {
+      vao,
+      updatePosition,
+    };
   }
 
   public setup(

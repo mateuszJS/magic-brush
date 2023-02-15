@@ -17,12 +17,7 @@ export function getMiniatureTexCoords(width: number, height: number) {
   ]);
 }
 
-export function getAttrs(
-  maxMinisQuantity: number,
-  videoWidth: number,
-  videoHeight: number
-): WebGLVertexArrayObject {
-  // TODO: we should render max miniatures number on the screen!!! not max total!
+export function getAttrs(videoWidth: number, videoHeight: number) {
   const positions = new Float32Array([
     0,
     0,
@@ -36,16 +31,29 @@ export function getAttrs(
   const texCoords = new Float32Array(
     getMiniatureTexCoords(videoWidth, videoHeight)
   );
-  const offsetX = new Float32Array(
-    Array.from(
-      { length: maxMinisQuantity },
-      (_, index) => index * (MINI_SIZE / window.gl.drawingBufferWidth) * 2
-    )
-  );
-  const depth = new Float32Array(
-    Array.from({ length: maxMinisQuantity }, (_, index) => index)
-  );
   const indexes = new Uint16Array([0, 1, 2, 0, 2, 3]);
+  const editableVao = drawTexture3D.createVAO(
+    texCoords,
+    positions,
+    new Float32Array([]),
+    new Float32Array([]),
+    indexes
+  );
+  return {
+    vao: editableVao.vao,
+    update: (maxMinisQuantity: number) => {
+      const offsetXAttr = new Float32Array(
+        Array.from(
+          { length: maxMinisQuantity },
+          (_, index) => index * (MINI_SIZE / window.gl.drawingBufferWidth) * 2
+        )
+      );
+      const depthAttr = new Float32Array(
+        Array.from({ length: maxMinisQuantity }, (_, index) => index)
+      );
 
-  return drawTexture3D.createVAO(texCoords, positions, depth, offsetX, indexes);
+      editableVao.updateDepth(depthAttr);
+      editableVao.updateOffsetX(offsetXAttr);
+    },
+  };
 }

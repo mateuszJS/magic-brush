@@ -49,16 +49,19 @@ export class State {
     this.mouseOffsetX = 0;
     this.mouseOffsetY = 0;
 
-    this.video = new MiniatureVideo(
-      videoUrl,
-      (video) => {
+    const onLoadVideo = (video: MiniatureVideo) => {
+      onVideoLoaded(this);
+      this.refresh();
+      const updateUIresize = () => {
         const width = video.duration / MS_PER_PIXEL;
         updateTimelineWidth(width);
-        onVideoLoaded(this);
-        this.refresh();
-      },
-      () => this.currTime
-    );
+        updateTimelineScroll(this);
+      };
+      window.addEventListener("resize", updateUIresize);
+      updateUIresize();
+    };
+
+    this.video = new MiniatureVideo(videoUrl, onLoadVideo, () => this.currTime);
   }
 
   public updateSelectionId(newSelection: number) {
@@ -148,12 +151,8 @@ export class State {
 
 function runCreator(state: State) {
   const effects = new Effects();
-  const preview = new Preview(state.video.width, state.video.height);
-  const timeline = new Timeline(
-    state.video.duration,
-    state.video.width,
-    state.video.height
-  );
+  const preview = new Preview(state);
+  const timeline = new Timeline(state);
   const handles = new Handles();
 
   function draw(now: DOMHighResTimeStamp) {
@@ -194,16 +193,17 @@ function runCreator(state: State) {
   requestAnimationFrame(draw);
 }
 
-function onResize() {
+function onResize(state: State) {
   const vh = window.innerHeight * 0.01;
   document.documentElement.style.setProperty("--vh", `${vh}px`);
   resizeCanvas(); // remember to always firstly setup --vh in css
   calcMatrix(); // remember to firstly set size of canvas!
+  state.refresh();
 }
 
 export default function initCreator(videoUrl: string) {
   const state = new State(videoUrl, runCreator);
-  onResize();
-  window.addEventListener("resize", onResize);
+  onResize(state);
+  window.addEventListener("resize", () => onResize(state));
   initUI(state); // UI initialize skeletonSize, what has to be calculated AFTER setting --vh variable in css to make measurements correctly
 }

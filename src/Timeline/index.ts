@@ -1,6 +1,5 @@
 import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
 import { State } from "initCreator";
-import MiniatureVideo from "models/Video/MiniatureVideo";
 import { drawTexture3D } from "programs";
 import { canvasMatrix } from "programs/canvasMatrix";
 import setupRenderTarget from "renders/setupRenderTarget";
@@ -26,23 +25,25 @@ function getStartTime(currTime: number) {
   return Math.floor(safeTimeOffset / MS_PER_MINI) * MS_PER_MINI;
 }
 
-let avgValue = 0;
-let avgNumber = 0;
-
 export default class Timeline {
   private vao: WebGLVertexArrayObject;
 
-  constructor(videoDuration: number, videoWidth: number, videoHeight: number) {
-    const widthWithHidden = skeletonSize.timeline.width + 2 * MINI_SIZE;
-    // width including partially visible frames on the right and left side
+  constructor(state: State) {
+    const { vao, update } = getAttrs(state.video.width, state.video.height);
+    this.vao = vao;
+    const updateResRelateAttrs = () => {
+      const widthWithHidden = skeletonSize.timeline.width + 2 * MINI_SIZE;
+      // width including partially visible frames on the right and left side
 
-    const maxMinisQuantity = Math.ceil(widthWithHidden / MINI_SIZE);
-    this.vao = getAttrs(maxMinisQuantity, videoWidth, videoHeight);
+      const maxMinisQuantity = Math.ceil(widthWithHidden / MINI_SIZE);
+      update(maxMinisQuantity);
+    };
+    window.addEventListener("resize", updateResRelateAttrs);
+    updateResRelateAttrs();
   }
 
   render(state: State) {
     const gl = window.gl;
-    const start = performance.now();
     const startX = getStartX(state.currTime);
     const startTime = getStartTime(state.currTime);
 
@@ -79,13 +80,6 @@ export default class Timeline {
     );
     gl.bindVertexArray(null);
 
-    const end = performance.now();
-    avgValue += end - start;
-    avgNumber++;
-
-    if (avgNumber % 60 === 0) {
-      // console.log("avg", avgValue / avgNumber);
-    }
     if (minisEnd < skeletonSize.timeline.width) {
       gl.enable(gl.SCISSOR_TEST);
       gl.scissor(
