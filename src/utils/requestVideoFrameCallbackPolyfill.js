@@ -16,6 +16,7 @@ if (
         this.mozPresentedFrames ||
         this.mozPaintedFrames ||
         newquality.totalVideoFrames - newquality.droppedVideoFrames;
+
       if (presentedFrames > baseline) {
         const processingDuration =
           this.mozFrameDelay ||

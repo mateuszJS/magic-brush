@@ -103,6 +103,38 @@ export default class Preview {
 
   render(state: State) {
     const gl = window.gl;
+    /*
+    if (!this.isFetching && this.lastFetchFrameTime !== state.currTime) {
+      const time = state.currTime;
+      const timeoutId = setTimeout(
+        () =>
+          console.log(
+            "=========================PREVIEW didn't fetched in 5 seconds"
+          ),
+        5000
+      );
+      const requestAddedToQueue = state.video.requestFrame(
+        time,
+        () => {
+          clearTimeout(timeoutId);
+          this.isFetching = false;
+          this.lastFetchFrameTime = time;
+          this.texture.fill(state.video);
+          state.refresh();
+        },
+        false
+      );
+      if (requestAddedToQueue) {
+        this.isFetching = true;
+      }
+    }
+
+    drawTexture.setup(this.vao2D.vao, this.texture.bind(0), canvasMatrix);
+    setupRenderTarget(null);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    gl.bindVertexArray(null);
+    return;*/
+
     const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75;
     const threshold = Math.min(100, speedThreshold);
     this.prevTime = state.currTime;
@@ -138,11 +170,18 @@ export default class Preview {
       this.drawFromCache(state, canvasMatrix, closestCachedTime);
     } else {
       if (!this.isFetching && distanceToLastFrame > 30) {
-        this.isFetching = true;
         const time = state.currTime;
-        state.video.requestFrame(
+        const timeoutId = setTimeout(
+          () =>
+            console.log(
+              "=========================PREVIEW didn't fetched in 5 seconds"
+            ),
+          5000
+        );
+        const requestAddedToQueue = state.video.requestFrame(
           time,
           () => {
+            clearTimeout(timeoutId);
             this.isFetching = false;
             this.lastFetchFrameTime = time;
             this.texture.fill(state.video);
@@ -150,11 +189,20 @@ export default class Preview {
           },
           false
         );
+        if (requestAddedToQueue) {
+          this.isFetching = true;
+        }
       }
 
       if (this.isFetching && distanceToClosestCacheTime < distanceToLastFrame) {
         // draw from cache
-        console.log("get cache because is fetching");
+        // mobile get stuck here. Seems like isFetching = true still constantly
+        console.log(
+          "get cache because is fetching",
+          this.isFetching,
+          distanceToClosestCacheTime,
+          distanceToLastFrame
+        );
         this.drawFromCache(state, canvasMatrix, closestCachedTime);
       } else {
         drawTexture.setup(this.vao2D.vao, this.texture.bind(0), canvasMatrix);
