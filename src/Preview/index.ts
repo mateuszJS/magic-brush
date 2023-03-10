@@ -47,6 +47,8 @@ function getVideoPositionsAttr(video: MiniatureVideo) {
   ]);
 }
 
+const MIN_MS_DIFF_TO_FETCH = 30;
+
 export default class Preview {
   private vao2D: ReturnType<DrawTexture["createVAO"]>;
   private vao3D: ReturnType<DrawTexture3D["createVAO"]>;
@@ -83,7 +85,6 @@ export default class Preview {
   }
 
   drawFromCache(state: State, matrix: Mat3, time: number) {
-    // console.log("render from cache");
     const gl = window.gl;
     /* setup 3x texture */
     const textureUnit = 0;
@@ -103,47 +104,7 @@ export default class Preview {
 
   render(state: State) {
     const gl = window.gl;
-    /*
-    if (!this.isFetching && this.lastFetchFrameTime !== state.currTime) {
-      const time = state.currTime;
-      const timeoutId = setTimeout(
-        () =>
-          console.log(
-            "=========================PREVIEW didn't fetched in 5 seconds"
-          ),
-        5000
-      );
-      const requestAddedToQueue = state.video.requestFrame(
-        time,
-        () => {
-          clearTimeout(timeoutId);
-          this.isFetching = false;
-          this.lastFetchFrameTime = time;
-          this.texture.fill(state.video);
-          state.refresh();
-        },
-        false
-      );
-      if (requestAddedToQueue) {
-        this.isFetching = true;
-      }
-    }
-
-    drawTexture.setup(this.vao2D.vao, this.texture.bind(0), canvasMatrix);
-    setupRenderTarget(null);
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    gl.bindVertexArray(null);
-    return;*/
-
-    const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75;
-    const threshold = Math.min(100, speedThreshold);
     this.prevTime = state.currTime;
-    // console.log("threshold", threshold);
-    const closestCachedTime =
-      Math.round(state.currTime / MS_PER_MINI) * MS_PER_MINI;
-    const distanceToClosestCacheTime = Math.abs(
-      state.currTime - closestCachedTime
-    );
 
     if (state.video.isPlaying && state.video.sourceReady) {
       this.lastFetchFrameTime = state.currTime;
@@ -155,7 +116,15 @@ export default class Preview {
       return;
     }
 
-    // console.log(distanceToClosestCacheTime, threshold);
+    const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75;
+    const threshold = Math.min(100, speedThreshold);
+    // console.log("threshold", threshold);
+    const closestCachedTime =
+      Math.round(state.currTime / MS_PER_MINI) * MS_PER_MINI;
+    const distanceToClosestCacheTime = Math.abs(
+      state.currTime - closestCachedTime
+    );
+
     const distanceToLastFrame = Math.abs(
       this.lastFetchFrameTime - state.currTime
     );
@@ -163,25 +132,14 @@ export default class Preview {
       distanceToClosestCacheTime <= threshold &&
       distanceToClosestCacheTime < distanceToLastFrame
     ) {
-      console.log("threshold", threshold);
-      console.log("distanceToClosestCacheTime", distanceToClosestCacheTime);
-      console.log("distanceToLastFrame", distanceToLastFrame);
       state.video.requestFrame(closestCachedTime, state.refresh, true);
       this.drawFromCache(state, canvasMatrix, closestCachedTime);
     } else {
-      if (!this.isFetching && distanceToLastFrame > 30) {
+      if (!this.isFetching && distanceToLastFrame > MIN_MS_DIFF_TO_FETCH) {
         const time = state.currTime;
-        const timeoutId = setTimeout(
-          () =>
-            console.log(
-              "=========================PREVIEW didn't fetched in 5 seconds"
-            ),
-          5000
-        );
         const requestAddedToQueue = state.video.requestFrame(
           time,
           () => {
-            clearTimeout(timeoutId);
             this.isFetching = false;
             this.lastFetchFrameTime = time;
             this.texture.fill(state.video);
@@ -195,14 +153,6 @@ export default class Preview {
       }
 
       if (this.isFetching && distanceToClosestCacheTime < distanceToLastFrame) {
-        // draw from cache
-        // mobile get stuck here. Seems like isFetching = true still constantly
-        console.log(
-          "get cache because is fetching",
-          this.isFetching,
-          distanceToClosestCacheTime,
-          distanceToLastFrame
-        );
         this.drawFromCache(state, canvasMatrix, closestCachedTime);
       } else {
         drawTexture.setup(this.vao2D.vao, this.texture.bind(0), canvasMatrix);

@@ -109,7 +109,10 @@ export function initUI(state: State) {
   timelineSlider.addEventListener("scroll", () => {
     // remember that event is triggered also by setting scroll position from code,
     // like we do in updateTimelineScroll
-    state.updateCurrTime(timelineSlider.scrollLeft * MS_PER_PIXEL);
+    if (!state.video.isPlaying) {
+      // update is performed in initCreator already
+      state.updateCurrTime(timelineSlider.scrollLeft * MS_PER_PIXEL);
+    }
   });
 
   timelineSlider.addEventListener("mousedown", () => {

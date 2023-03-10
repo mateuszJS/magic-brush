@@ -2,8 +2,7 @@ import Texture from "models/Texture";
 import { MINI_SIZE, MS_PER_PIXEL, isMobile } from "consts";
 import { getPreviewVideoSize } from "Preview";
 
-const PLACEHOLDER_TEX_SIZE = 1;
-const MS_LIMIT_STUCK = 2000;
+const MS_LIMIT_STUCK = 1000;
 
 const gl = window.gl;
 
@@ -65,7 +64,7 @@ export default class MiniatureVideo {
       if (!texture) throw Error("NO TEXTURE");
       gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
       const numberOfMiniatures = getDepthFromTime(this.duration);
-      console.log("depth", numberOfMiniatures);
+
       gl.texStorage3D(
         gl.TEXTURE_2D_ARRAY,
         1, // its not he level, it's the number of levels, you always have at least one
@@ -152,17 +151,15 @@ export default class MiniatureVideo {
     this.currTime = Math.max(1, frameDetails.time); // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
     let videoFrameCallbackId = 0;
     const timeoutId = setTimeout(() => {
-      console.log(
-        "====================================REQUESTING",
-        videoFrameCallbackId
-      );
+      // TODO: shot loading screen
       this.html.cancelVideoFrameCallback(videoFrameCallbackId);
+      // sometimes requestVideoFrameCallback get stuck(tested on iPhone 13 Pro, chrome and safari)
+      // so we try to play and pause and set time to 0 to restart something??
+      this.html.play();
+      this.html.pause();
       this.currTime = 0; // just to trigger requestVideoFrameCallback
       this.requestVideoFrame(frameDetails); // not sure if we need to aks for another one
     }, MS_LIMIT_STUCK);
-    // https://web.dev/requestvideoframecallback-rvfc/
-
-    // checkout this https://stackoverflow.com/questions/32699721/javascript-extract-video-frames-reliably
 
     // seems like requestVideoFrameCallback works only for very first tim download a frame
     videoFrameCallbackId = this.html.requestVideoFrameCallback(
@@ -253,7 +250,7 @@ export default class MiniatureVideo {
     frameDetails.isFetching = true;
     this.requestVideoFrame(frameDetails);
   }
-  /* return true if request has been added to queue */
+  /* return true if request has been added to queue, so callback will be called in the future */
   private addFrameToQueue(
     msOffset: number,
     callback: VoidFunction,
@@ -282,7 +279,7 @@ export default class MiniatureVideo {
     return true;
   }
 
-  /* return true if request has been added to queue */
+  /* return true if request has been added to queue, so callback will be called in the future */
   public requestFrame(
     msOffset: number,
     callback: VoidFunction,
@@ -293,15 +290,11 @@ export default class MiniatureVideo {
     }
 
     if (!this.fetchedFramesMs.includes(msOffset)) {
+      // preview render never asks for same time as cache, is just using cache in this case
       return this.addFrameToQueue(msOffset, callback, cache);
     }
-    return false;
-  }
 
-  public clearRequestsList() {
-    this.requestedFrames = this.requestedFrames.filter(
-      (frame) => !frame.isFetching
-    );
+    return false;
   }
 
   public play(time: number) {
