@@ -17,6 +17,11 @@ export default function initWebGL2(canvas: HTMLCanvasElement) {
 
   updateExtensions(gl);
 
+  gl.enable(gl.BLEND);
+  // we assume we are working with pre-multiplied alpha textures
+  // https://webglfundamentals.org/webgl/lessons/webgl-and-alpha.html
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
   // gl.enable(gl.SCISSOR_TEST);
 
   // gl.enable(gl.BLEND);

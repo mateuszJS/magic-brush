@@ -23,7 +23,7 @@ declare module "*.svg" {
   export default content;
 }
 
-type Matrix3 = [
+type Mat3 = [
   number,
   number,
   number,
@@ -34,8 +34,6 @@ type Matrix3 = [
   number,
   number
 ];
-
-type Uint8Pixel = [number, number, number, number];
 
 type vec4 = [number, number, number, number];
 

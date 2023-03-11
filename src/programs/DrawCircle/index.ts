@@ -1,63 +1,67 @@
 import shaderVertexSource from "./index.vert";
 import shaderFragmentSource from "./index.frag";
+import pickShaderFragmentSource from "./pick.frag";
 import { setAttribute, setIndex } from "../utils/attributes";
 import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
 import linkProgram from "programs/utils/linkProgram";
 
-// keys are attributes names, values are location
-const attrs = {
-  a_position: 0,
-  a_texCoord: 1,
-} as const;
-// because all DrawSprite programs will share same attr locations, we can also share VAO
-
 interface EditableVao {
   vao: WebGLVertexArrayObject;
-  updatePosition: (data: BufferSource) => void;
+  setColor: (colors: BufferSource) => void;
+  setPos: (data: BufferSource) => void;
 }
 
-export default class DrawTexture {
+const attrs = {
+  aVertOffset: 0,
+  aNormPos: 2,
+  aColor: 1,
+  aPos: 3,
+} as const;
+
+const RADIUS = 30;
+const INDEXES = new Uint16Array([0, 1, 2, 1, 2, 3]);
+const VERTICES_OFFSET = [
+  -RADIUS,
+  -RADIUS,
+  -RADIUS,
+  +RADIUS,
+  +RADIUS,
+  -RADIUS,
+  +RADIUS,
+  +RADIUS,
+];
+const NORMS = [0, 0, 0, 1, 1, 0, 1, 1];
+
+export default class DrawCircle {
   private program: WebGLProgram;
-  private texUniform: WebGLUniformLocation;
   private matrixUniform: WebGLUniformLocation;
 
-  constructor() {
+  constructor(isPicking: boolean) {
     const gl = window.gl;
     const vertexShader: WebGLShader = compileShader(
       gl.VERTEX_SHADER,
-      shaderVertexSource
+      shaderVertexSource //.replace("%RADIUS%", RADIUS.toFixed(1))
     );
     const fragmentShader: WebGLShader = compileShader(
       gl.FRAGMENT_SHADER,
-      shaderFragmentSource
+      isPicking ? pickShaderFragmentSource : shaderFragmentSource
     );
 
     this.program = createProgram(gl, vertexShader, fragmentShader);
+
     Object.entries(attrs).forEach(([name, location]) => {
       gl.bindAttribLocation(this.program, location, name); // this bind attribute under specific location, needs to call just once per program
     });
 
-    // after setting location of attributes we can link the program
     linkProgram(this.program);
 
-    // speed up setting attribute with bindVertexArrayOES https://webglfundamentals.org/webgl/lessons/webgl-attributes.html
-
-    this.texUniform = getUniform(this.program, "u_texture");
-    this.matrixUniform = getUniform(this.program, "u_matrix");
+    this.matrixUniform = getUniform(this.program, "uMatrix");
   }
 
   // VAO - vertex array object
-  public createVAO(
-    texCoord: Float32Array,
-    position: Float32Array,
-    indexes: Uint16Array
-  ): EditableVao {
-    // if you are planning to use this
-
-    // https://webgl2fundamentals.org/webgl/lessons/webgl1-to-webgl2.html
-
+  public createVAO(): EditableVao {
     const gl = window.gl;
     const vao = gl.createVertexArray();
 
@@ -69,32 +73,31 @@ export default class DrawTexture {
 
     gl.bindVertexArray(vao);
 
-    const updatePosition = setAttribute(
-      attrs.a_position,
+    setAttribute(
+      attrs.aVertOffset,
       2,
-      undefined,
-      position
+      "vertex",
+      new Float32Array(VERTICES_OFFSET)
     );
-    setAttribute(attrs.a_texCoord, 2, undefined, texCoord);
-    setIndex(indexes);
+    setAttribute(attrs.aNormPos, 2, "vertex", new Float32Array(NORMS));
+    const setColor = setAttribute(attrs.aColor, 4, "instance");
+    const setPos = setAttribute(attrs.aPos, 2, "instance");
+    setIndex(INDEXES);
 
     gl.bindVertexArray(null);
 
     return {
       vao,
-      updatePosition,
+      setColor,
+      setPos,
     };
   }
 
-  public setup(
-    vao: WebGLVertexArrayObject,
-    texUnitIndex: number,
-    matrix: Mat3
-  ) {
+  public setup(editVao: EditableVao, matrix: Mat3) {
     const gl = window.gl;
     gl.useProgram(this.program);
-    gl.bindVertexArray(vao);
-    gl.uniform1i(this.texUniform, texUnitIndex);
+    gl.bindVertexArray(editVao.vao);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
   }
 }
+var done = false;

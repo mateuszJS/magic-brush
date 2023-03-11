@@ -1,6 +1,6 @@
 import shaderVertexSource from "./index.vert";
 import shaderFragmentSource from "./index.frag";
-import { setAttribute, setIndex } from "../utils/setAttribute";
+import { setAttribute, setIndex } from "../utils/attributes";
 import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
@@ -14,6 +14,13 @@ const attrs = {
   aOffsetX: 3,
 } as const;
 // because all DrawSprite programs will share same attr locations, we can also share VAO
+
+interface EditableVao {
+  vao: WebGLVertexArrayObject;
+  updatePosition: (data: BufferSource) => void;
+  updateDepth: (data: BufferSource) => void;
+  updateOffsetX: (data: BufferSource) => void;
+}
 
 export default class DrawTexture3D {
   private program: WebGLProgram;
@@ -54,7 +61,7 @@ export default class DrawTexture3D {
     depth: Float32Array,
     offsetX: Float32Array,
     indexes: Uint16Array
-  ): WebGLVertexArrayObject {
+  ): EditableVao {
     // if you are planning to use this
 
     // https://webgl2fundamentals.org/webgl/lessons/webgl1-to-webgl2.html
@@ -70,26 +77,31 @@ export default class DrawTexture3D {
 
     gl.bindVertexArray(vao);
 
-    setAttribute(attrs.a_position, position);
-    setAttribute(attrs.a_texCoord, texCoord);
-    setAttribute(attrs.aOffsetDepth, depth, 1);
-    setAttribute(attrs.aOffsetX, offsetX, 1);
+    const updatePosition = setAttribute(
+      attrs.a_position,
+      2,
+      "vertex",
+      position
+    );
+    setAttribute(attrs.a_texCoord, 2, "vertex", texCoord);
+    const updateDepth = setAttribute(attrs.aOffsetDepth, 1, "instance", depth);
+    const updateOffsetX = setAttribute(attrs.aOffsetX, 1, "instance", offsetX);
     setIndex(indexes);
-
-    gl.vertexAttribDivisor(attrs.a_position, 0);
-    gl.vertexAttribDivisor(attrs.a_texCoord, 0);
-    gl.vertexAttribDivisor(attrs.aOffsetDepth, 1);
-    gl.vertexAttribDivisor(attrs.aOffsetX, 1);
 
     gl.bindVertexArray(null);
 
-    return vao;
+    return {
+      vao,
+      updatePosition,
+      updateDepth,
+      updateOffsetX,
+    };
   }
 
   public setup(
     vao: WebGLVertexArrayObject,
     texUnitIndex: number,
-    matrix: Matrix3,
+    matrix: Mat3,
     startDepth: number
   ) {
     const gl = window.gl;

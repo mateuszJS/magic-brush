@@ -45,6 +45,12 @@ export function updateTimelineScroll(state: State) {
   timelineSlider.scrollLeft = state.currTime / MS_PER_PIXEL;
 }
 
+function getCoordsFromTouch(event: TouchEvent): [number, number] {
+  const touch = event.touches[0];
+  // we assume that canvas is places in very top left corner, no offset
+  return [touch.pageX, touch.pageY];
+}
+
 export function initUI(state: State) {
   const mainContainer = document.createElement("main");
   document.body.appendChild(mainContainer);
@@ -53,6 +59,31 @@ export function initUI(state: State) {
   const previewContainer = document.createElement("section");
   previewContainer.classList.add("preview");
   mainContainer.appendChild(previewContainer);
+
+  if (isMobile) {
+    previewContainer.addEventListener("touchstart", (e) => {
+      const [x, y] = getCoordsFromTouch(e);
+      state.onTouchStart(x, y);
+    });
+    previewContainer.addEventListener("touchmove", (e) => {
+      const [x, y] = getCoordsFromTouch(e);
+      state.updateMousePos(x, y);
+    });
+  } else {
+    previewContainer.addEventListener("mousedown", state.mousedown);
+    previewContainer.addEventListener("mousemove", (e) => {
+      // we assume that canvas is places in very top left corner, no offset
+      const mouseX = e.clientX as number;
+      const mouseY = e.clientY as number;
+
+      state.updateMousePos(mouseX, mouseY);
+    });
+  }
+
+  previewContainer.addEventListener(
+    isMobile ? "touchend" : "mouseup",
+    state.mouseup
+  );
 
   /* TIMELINE */
   const timelineContainer = document.createElement("section");
@@ -100,7 +131,10 @@ export function initUI(state: State) {
   timelineSlider.addEventListener("scroll", () => {
     // remember that event is triggered also by setting scroll position from code,
     // like we do in updateTimelineScroll
-    state.updateCurrTime(timelineSlider.scrollLeft * MS_PER_PIXEL);
+    if (!state.video.isPlaying) {
+      // update is performed in initCreator already
+      state.updateCurrTime(timelineSlider.scrollLeft * MS_PER_PIXEL);
+    }
   });
 
   timelineSlider.addEventListener("mousedown", () => {

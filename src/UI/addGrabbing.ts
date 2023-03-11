@@ -19,16 +19,16 @@ export default function addGrabbing(elem: HTMLElement) {
   const mouseUpHandler = () => {
     elem.style.cursor = "grab";
     elem.style.removeProperty("user-select");
-    document.removeEventListener("mousemove", mouseMoveHandler);
+    elem.removeEventListener("mousemove", mouseMoveHandler);
     move();
   };
 
   const mouseDownHandler = () => {
     speed = 0;
     prevMouseX = undefined;
-    document.addEventListener("mousemove", mouseMoveHandler);
+    elem.addEventListener("mousemove", mouseMoveHandler);
   };
 
-  document.addEventListener("mouseup", mouseUpHandler);
-  document.addEventListener("mousedown", mouseDownHandler);
+  elem.addEventListener("mouseup", mouseUpHandler);
+  elem.addEventListener("mousedown", mouseDownHandler);
 }
