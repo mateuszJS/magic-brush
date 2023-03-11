@@ -2,7 +2,7 @@ import "./styles/index.scss";
 import { initUI, updateTimelineScroll, updateTimelineWidth } from "UI";
 import { calcMatrix } from "programs/canvasMatrix";
 import resizeCanvas from "utils/resizeCanvas";
-import { MS_PER_PIXEL } from "consts";
+import { MS_PER_PIXEL, isMobile } from "consts";
 import Timeline from "Timeline";
 import MiniatureVideo from "models/Video/MiniatureVideo";
 import Preview from "Preview";
@@ -79,6 +79,12 @@ export class State {
     }
   }
 
+  public onTouchStart = (x: number, y: number) => {
+    this.mouseX = x;
+    this.mouseY = y;
+    this.needsRefreshSelection = true;
+  };
+
   public mousedown = () => {
     if (this.selectionId) {
       this.drag = true;
@@ -89,24 +95,31 @@ export class State {
     if (this.drag) {
       this.drag = false;
     }
+    if (isMobile) {
+      this.selectionId = 0;
+    }
   };
 
-  public updateMousePos(x: number, y: number) {
+  public updateMousePos = (x: number, y: number) => {
     this.mouseX = x;
     this.mouseY = y;
-    this.needsRefreshSelection = true;
+
+    if (!isMobile && !this.drag) {
+      this.needsRefreshSelection = true;
+    }
 
     if (this.drag) {
       const selectedHandle = this.snow?.curve.find(
         (point) => point.id === this.selectionId
       );
+
       if (selectedHandle) {
         selectedHandle.x = this.mouseOffsetX + x;
         selectedHandle.y = this.mouseOffsetY + y;
       }
     }
     // we have different mouseX and pointX
-  }
+  };
 
   public playVideo = () => {
     this.video.play(this.currTime);
@@ -176,6 +189,9 @@ function runCreator(state: State) {
         state.mouseX,
         state.mouseY
       );
+      if (isMobile && newSelection) {
+        state.drag = true;
+      }
       state.updateSelectionId(newSelection);
       state.needsRefreshSelection = false;
     }

@@ -45,6 +45,12 @@ export function updateTimelineScroll(state: State) {
   timelineSlider.scrollLeft = state.currTime / MS_PER_PIXEL;
 }
 
+function getCoordsFromTouch(event: TouchEvent): [number, number] {
+  const touch = event.touches[0];
+  // we assume that canvas is places in very top left corner, no offset
+  return [touch.pageX, touch.pageY];
+}
+
 export function initUI(state: State) {
   const mainContainer = document.createElement("main");
   document.body.appendChild(mainContainer);
@@ -53,15 +59,31 @@ export function initUI(state: State) {
   const previewContainer = document.createElement("section");
   previewContainer.classList.add("preview");
   mainContainer.appendChild(previewContainer);
-  previewContainer.addEventListener("mousemove", (e) => {
-    // we assume that canvas is places in very top left corner, no offset
-    const mouseX = e.clientX as number;
-    const mouseY = e.clientY as number;
 
-    state.updateMousePos(mouseX, mouseY);
-  });
-  previewContainer.addEventListener("mousedown", state.mousedown);
-  previewContainer.addEventListener("mouseup", state.mouseup);
+  if (isMobile) {
+    previewContainer.addEventListener("touchstart", (e) => {
+      const [x, y] = getCoordsFromTouch(e);
+      state.onTouchStart(x, y);
+    });
+    previewContainer.addEventListener("touchmove", (e) => {
+      const [x, y] = getCoordsFromTouch(e);
+      state.updateMousePos(x, y);
+    });
+  } else {
+    previewContainer.addEventListener("mousedown", state.mousedown);
+    previewContainer.addEventListener("mousemove", (e) => {
+      // we assume that canvas is places in very top left corner, no offset
+      const mouseX = e.clientX as number;
+      const mouseY = e.clientY as number;
+
+      state.updateMousePos(mouseX, mouseY);
+    });
+  }
+
+  previewContainer.addEventListener(
+    isMobile ? "touchend" : "mouseup",
+    state.mouseup
+  );
 
   /* TIMELINE */
   const timelineContainer = document.createElement("section");

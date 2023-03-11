@@ -157,7 +157,8 @@ export default class MiniatureVideo {
       // so we try to play and pause and set time to 0 to restart something??
       this.html.play();
       this.html.pause();
-      this.currTime = 0; // just to trigger requestVideoFrameCallback
+      this.currTime = 5; // just to trigger requestVideoFrameCallback, we assume that video has a least 5ms
+      // we didn't used 0 since it's more random issues prone :)
       this.requestVideoFrame(frameDetails); // not sure if we need to aks for another one
     }, MS_LIMIT_STUCK);
 
