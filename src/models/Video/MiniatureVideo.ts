@@ -28,7 +28,6 @@ export default class MiniatureVideo {
   public textureAtlas: WebGLTexture;
   private fetchedFramesMs: number[];
   public isPlaying: boolean;
-  public sourceReady: boolean; // indicates if first frame is available while playing video(we don't want to render a frame right after updating video time, video will still contain last rendered frame)
   private pbo: WebGLBuffer;
   private texWidth: number;
   private texHeight: number;
@@ -36,7 +35,8 @@ export default class MiniatureVideo {
   constructor(
     url: string,
     cbOnReady: (video: MiniatureVideo) => void,
-    private getCurrTime: () => number
+    private getCurrTime: () => number,
+    onVideoEnd: VoidFunction
   ) {
     const html = document.createElement("video");
     this.isReady = false;
@@ -103,9 +103,8 @@ export default class MiniatureVideo {
     this.requestedFrames = [];
     this.fetchedFramesMs = [];
     this.isPlaying = false;
-    this.sourceReady = false;
 
-    this.html.addEventListener("ended", this.pause);
+    this.html.addEventListener("ended", onVideoEnd);
   }
 
   set currTime(time: number) {
@@ -302,15 +301,10 @@ export default class MiniatureVideo {
     this.currTime = time;
     this.html.play();
     this.isPlaying = true;
-
-    this.html.requestVideoFrameCallback(() => {
-      this.sourceReady = true;
-    });
   }
 
   public pause = () => {
     this.html.pause();
     this.isPlaying = false;
-    this.sourceReady = false;
   };
 }

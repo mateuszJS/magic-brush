@@ -1,11 +1,11 @@
 import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
-import { State } from "initCreator";
 import { drawTexture3D } from "programs";
 import { canvasMatrix } from "programs/canvasMatrix";
 import setupRenderTarget from "renders/setupRenderTarget";
 import { skeletonSize } from "UI";
 import m3 from "utils/m3";
 import { getAttrs } from "./getAttrs";
+import State from "State";
 
 function getStartX(currTime: number) {
   const skeleton = skeletonSize.timeline;

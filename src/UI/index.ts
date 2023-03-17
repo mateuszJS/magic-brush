@@ -1,7 +1,7 @@
 import createToolbar, { updateToolbar } from "./createToolbar";
 import addGrabbing from "./addGrabbing";
 import { MS_PER_PIXEL, isMobile } from "consts";
-import { State } from "initCreator";
+import State from "State";
 
 interface SkeletonSize {
   preview: {
@@ -60,29 +60,29 @@ export function initUI(state: State) {
   previewContainer.classList.add("preview");
   mainContainer.appendChild(previewContainer);
 
+  // we assume that canvas is places in very top left corner, no offset
+  // so we do not have to subtract left top corner of the listening node
   if (isMobile) {
     previewContainer.addEventListener("touchstart", (e) => {
       const [x, y] = getCoordsFromTouch(e);
-      state.onTouchStart(x, y);
+      state.onPointerDown(x, y);
     });
     previewContainer.addEventListener("touchmove", (e) => {
       const [x, y] = getCoordsFromTouch(e);
-      state.updateMousePos(x, y);
+      state.onPointerMove(x, y);
     });
   } else {
-    previewContainer.addEventListener("mousedown", state.mousedown);
+    previewContainer.addEventListener("mousedown", (e) => {
+      state.onPointerDown(e.clientX, e.clientY);
+    });
     previewContainer.addEventListener("mousemove", (e) => {
-      // we assume that canvas is places in very top left corner, no offset
-      const mouseX = e.clientX as number;
-      const mouseY = e.clientY as number;
-
-      state.updateMousePos(mouseX, mouseY);
+      state.onPointerMove(e.clientX, e.clientY);
     });
   }
 
   previewContainer.addEventListener(
     isMobile ? "touchend" : "mouseup",
-    state.mouseup
+    state.onPointerUp
   );
 
   /* TIMELINE */
