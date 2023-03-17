@@ -169,9 +169,13 @@ function runCreator(state: State) {
   const handles = new Handles();
 
   function draw(now: DOMHighResTimeStamp) {
+    console.log("draw");
     const { needsRefresh } = state;
     state.needsRefresh = false;
 
+    /*
+       it should be changed, every single time we got a new frame, we should draw it to canvas, not just 60 times per second
+    */
     if (state.video.isPlaying) {
       state.updateCurrTime(state.video.currTime);
       updateTimelineScroll(state);
@@ -195,14 +199,19 @@ function runCreator(state: State) {
       state.updateSelectionId(newSelection);
       state.needsRefreshSelection = false;
     }
-
     if (needsRefresh) {
+      console.log("refresh");
       preview.render(state);
       handles.render(state);
       timeline.render(state);
       effects.render(state);
     }
+
+    // we should request from state
+    // if (state.video.isPlaying) {
+    // } else {
     requestAnimationFrame(draw);
+    // }
     // Tell it to use our program (pair of shaders)
   }
 
