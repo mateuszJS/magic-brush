@@ -2,7 +2,6 @@ import "./styles/index.scss";
 import { initUI, updateTimelineScroll } from "UI";
 import { calcMatrix } from "programs/canvasMatrix";
 import resizeCanvas from "utils/resizeCanvas";
-import { isMobile } from "consts";
 import Timeline from "Timeline";
 import Preview from "Preview";
 import Handles from "Handles";
@@ -21,13 +20,14 @@ function runCreator(state: State) {
     let { needsRefresh } = state; // make save copy of needsRefresh value
     state.needsRefresh = false; // set next needsRefresh to false by default
     if (state.video.isPlaying) {
-      if (state.video.currTime !== state.currTime) {
+      if (state.video.currTime > state.currTime) {
+        // > sign because of mobile sometimes player on the starts plays from like a second(or half) before
         /*
           1. we update scroll position
           2. It imitates user interaction, so event for changing scroll is fired
           3. That scroll event update currTime and refresh in the state
         */
-        state.updateCurrTime(state.video.currTime);
+        state.currTime = state.video.currTime;
         updateTimelineScroll(state);
         needsRefresh = true;
       }
@@ -38,6 +38,7 @@ function runCreator(state: State) {
       handles.render(state);
       timeline.render(state);
       effects.render(state);
+      state.video.triggerRequest();
     }
 
     requestAnimationFrame(draw);

@@ -1,7 +1,7 @@
 import MiniatureVideo from "models/Video/MiniatureVideo";
 import { updateToolbar } from "UI/createToolbar";
 import { splitFloatIntoVec3 } from "utils/id";
-import { MS_PER_PIXEL, isMobile } from "consts";
+import { MS_PER_PIXEL } from "consts";
 import { updateTimelineScroll, updateTimelineWidth } from "UI";
 
 interface HandlePoint {
@@ -98,11 +98,6 @@ export default class State {
 
   public refresh = () => {
     this.needsRefresh = true;
-  };
-
-  public updateCurrTime = (time: number) => {
-    this.currTime = time;
-    this.refresh();
   };
 
   private addHandle(id: number, x: number, y: number) {

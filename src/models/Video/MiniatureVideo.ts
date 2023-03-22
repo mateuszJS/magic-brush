@@ -15,8 +15,6 @@ interface FrameDetails {
 
 const getDepthFromTime = (timeMs: number) =>
   Math.ceil(timeMs / MS_PER_PIXEL / MINI_SIZE);
-let avgNumber = 0;
-let avgValue = 0;
 
 export default class MiniatureVideo {
   private _width?: number;
@@ -147,11 +145,12 @@ export default class MiniatureVideo {
   }
 
   private requestVideoFrame(frameDetails: FrameDetails) {
-    this.currTime = Math.max(1, frameDetails.time); // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
+    this.currTime = frameDetails.time;
+    // seems like maybe we don't need that Math.max(1)
+    // this.currTime = Math.max(1, frameDetails.time); // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
     let videoFrameCallbackId = 0;
-    const timeoutId = setTimeout(() => {
-      // TODO: shot loading screen
-      this.html.cancelVideoFrameCallback(videoFrameCallbackId);
+
+    const retry = () => {
       // sometimes requestVideoFrameCallback get stuck(tested on iPhone 13 Pro, chrome and safari)
       // so we try to play and pause and set time to 0 to restart something??
       this.html.play();
@@ -159,14 +158,23 @@ export default class MiniatureVideo {
       this.currTime = 5; // just to trigger requestVideoFrameCallback, we assume that video has a least 5ms
       // we didn't used 0 since it's more random issues prone :)
       this.requestVideoFrame(frameDetails); // not sure if we need to aks for another one
+    };
+
+    const timeoutId = setTimeout(() => {
+      // TODO: shot loading screen
+      this.html.cancelVideoFrameCallback(videoFrameCallbackId);
+
+      if (this.isPlaying) {
+        frameDetails.isFetching = false;
+        return;
+      }
+      retry();
     }, MS_LIMIT_STUCK);
 
     // seems like requestVideoFrameCallback works only for very first tim download a frame
     videoFrameCallbackId = this.html.requestVideoFrameCallback(
       (now, metadata) => {
         clearTimeout(timeoutId);
-        // metadata.presentedFrames - number of frames submitted for composition since last requestVideoFrameCallback, usually is 1.
-        // metadata.mediaTime - like video.currentTime, in seconds
 
         if (this.isPlaying) {
           frameDetails.isFetching = false;
@@ -175,12 +183,19 @@ export default class MiniatureVideo {
           // we will just avoid the effect of requestVideoFrameCallback
         }
 
+        const frameTimeDiff = Math.abs(
+          metadata.mediaTime - this.html.currentTime
+        );
+        if (frameTimeDiff > 0.04) {
+          retry();
+          return;
+        }
+
         this.requestedFrames = this.requestedFrames.filter(
           (frame) => frame.time !== frameDetails.time
         );
 
         if (frameDetails.cache) {
-          const start = performance.now();
           this.fetchedFramesMs.push(frameDetails.time);
 
           gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, this.pbo);
@@ -205,12 +220,6 @@ export default class MiniatureVideo {
             0
           );
           gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
-
-          const end = performance.now();
-          avgValue += end - start;
-          avgNumber++;
-
-          console.log("avg", avgValue / avgNumber);
         }
 
         /* COPY PIXELS FROM CURRENT FRAME BUFFER INTO TEXTURE */
@@ -256,12 +265,11 @@ export default class MiniatureVideo {
     callback: VoidFunction,
     cache: boolean
   ): boolean {
-    const alreadyExists = this.requestedFrames.some(
+    const alreadyRequested = this.requestedFrames.some(
       (frame) => frame.time === msOffset
     );
 
-    if (alreadyExists) return false;
-
+    if (alreadyRequested) return false;
     this.requestedFrames.push({
       time: msOffset,
       callback,
@@ -269,14 +277,14 @@ export default class MiniatureVideo {
       cache,
     });
 
-    const isAnyDuringFetch = this.requestedFrames.some(
-      (frame) => frame.isFetching
-    );
-    if (!isAnyDuringFetch) {
-      this.fetchNextFrame();
-    }
-
     return true;
+  }
+
+  public triggerRequest() {
+    const isFetching = this.requestedFrames.some((frame) => frame.isFetching);
+    if (this.requestedFrames.length > 0 && !isFetching) {
+      this.fetchNextFrame(); // it should be moved to the end of render. Only after a render there can be a new item here.
+    }
   }
 
   /* return true if request has been added to queue, so callback will be called in the future */

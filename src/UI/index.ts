@@ -133,7 +133,8 @@ export function initUI(state: State) {
     // like we do in updateTimelineScroll
     if (!state.video.isPlaying) {
       // update is performed in initCreator already
-      state.updateCurrTime(timelineSlider.scrollLeft * MS_PER_PIXEL);
+      state.currTime = timelineSlider.scrollLeft * MS_PER_PIXEL;
+      state.refresh();
     }
   });
 
