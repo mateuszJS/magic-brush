@@ -1,7 +1,6 @@
 import { skeletonSize } from "UI";
 import { drawTexture, drawTexture3D } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
-import m3 from "utils/m3";
 import { canvasMatrix } from "programs/canvasMatrix";
 import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
 import Texture from "models/Texture";
