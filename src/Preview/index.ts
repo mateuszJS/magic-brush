@@ -1,14 +1,13 @@
 import { skeletonSize } from "UI";
 import { drawTexture, drawTexture3D } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
-import m3 from "utils/m3";
-import { State } from "initCreator";
 import { canvasMatrix } from "programs/canvasMatrix";
 import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
 import Texture from "models/Texture";
 import DrawTexture from "programs/DrawTexture";
 import DrawTexture3D from "programs/DrawTexture3D";
 import MiniatureVideo from "models/Video/MiniatureVideo";
+import State from "State";
 
 export function getPreviewVideoSize(video: MiniatureVideo) {
   const preview = skeletonSize.preview;
@@ -106,7 +105,7 @@ export default class Preview {
     const gl = window.gl;
     this.prevTime = state.currTime;
 
-    if (state.video.isPlaying && state.video.sourceReady) {
+    if (state.video.isPlaying) {
       this.lastFetchFrameTime = state.currTime;
       this.texture.fill(state.video);
       drawTexture.setup(this.vao2D.vao, this.texture.bind(0), canvasMatrix);

@@ -1,10 +1,10 @@
 import { drawBezier } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
-import { State } from "initCreator";
 import { canvasMatrix } from "programs/canvasMatrix";
 import DrawBezier from "programs/DrawBezier";
 import snowFlakePng from "assets/snow-flakes.png";
 import Texture from "models/Texture";
+import State from "State";
 
 const ITER = 102;
 

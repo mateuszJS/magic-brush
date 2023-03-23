@@ -15,8 +15,6 @@ interface FrameDetails {
 
 const getDepthFromTime = (timeMs: number) =>
   Math.ceil(timeMs / MS_PER_PIXEL / MINI_SIZE);
-let avgNumber = 0;
-let avgValue = 0;
 
 export default class MiniatureVideo {
   private _width?: number;
@@ -28,7 +26,6 @@ export default class MiniatureVideo {
   public textureAtlas: WebGLTexture;
   private fetchedFramesMs: number[];
   public isPlaying: boolean;
-  public sourceReady: boolean; // indicates if first frame is available while playing video(we don't want to render a frame right after updating video time, video will still contain last rendered frame)
   private pbo: WebGLBuffer;
   private texWidth: number;
   private texHeight: number;
@@ -36,7 +33,8 @@ export default class MiniatureVideo {
   constructor(
     url: string,
     cbOnReady: (video: MiniatureVideo) => void,
-    private getCurrTime: () => number
+    private getCurrTime: () => number,
+    onVideoEnd: VoidFunction
   ) {
     const html = document.createElement("video");
     this.isReady = false;
@@ -81,7 +79,8 @@ export default class MiniatureVideo {
       cbOnReady(this);
 
       if (isMobile) {
-        // fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
+        /* fix, On mobile the event from requestVideoFrameCallback is not firing! Needs to call play() at least once
+        without this fix a app is still working, but needs to firstly run into first setTimeout with html.play() inside */
         this.html.play();
         this.html.pause();
       }
@@ -89,23 +88,19 @@ export default class MiniatureVideo {
     this.texWidth = 0;
     this.texHeight = 0;
 
+    this.textureAtlas = new Texture();
+    this.requestedFrames = [];
+    this.fetchedFramesMs = [];
+    this.isPlaying = false;
+
+    this.html = html;
+    this.html.addEventListener("ended", onVideoEnd);
+
     html.playsInline = true;
     html.muted = true;
     html.loop = false;
     html.src = url;
     html.preload = "auto";
-    // TODO: test the performance
-    // html.preload = "none";
-
-    this.html = html;
-
-    this.textureAtlas = new Texture();
-    this.requestedFrames = [];
-    this.fetchedFramesMs = [];
-    this.isPlaying = false;
-    this.sourceReady = false;
-
-    this.html.addEventListener("ended", this.pause);
   }
 
   set currTime(time: number) {
@@ -148,32 +143,43 @@ export default class MiniatureVideo {
   }
 
   private requestVideoFrame(frameDetails: FrameDetails) {
-    this.currTime = Math.max(1, frameDetails.time); // requestVideoFrameCallback won't fire if initial offset is zero! Or maybe if it didn't changed....
+    this.currTime = frameDetails.time;
     let videoFrameCallbackId = 0;
+
+    const retry = () => {
+      // sometimes requestVideoFrameCallback get stuck(tested on iPhone 13 Pro, chrome and safari)
+      this.html.play();
+      this.requestVideoFrame(frameDetails); // not sure if we need to aks for another one
+    };
+
     const timeoutId = setTimeout(() => {
       // TODO: shot loading screen
       this.html.cancelVideoFrameCallback(videoFrameCallbackId);
-      // sometimes requestVideoFrameCallback get stuck(tested on iPhone 13 Pro, chrome and safari)
-      // so we try to play and pause and set time to 0 to restart something??
-      this.html.play();
-      this.html.pause();
-      this.currTime = 5; // just to trigger requestVideoFrameCallback, we assume that video has a least 5ms
-      // we didn't used 0 since it's more random issues prone :)
-      this.requestVideoFrame(frameDetails); // not sure if we need to aks for another one
+      if (this.isPlaying) {
+        frameDetails.isFetching = false;
+        return;
+      }
+      retry();
     }, MS_LIMIT_STUCK);
 
     // seems like requestVideoFrameCallback works only for very first tim download a frame
     videoFrameCallbackId = this.html.requestVideoFrameCallback(
       (now, metadata) => {
         clearTimeout(timeoutId);
-        // metadata.presentedFrames - number of frames submitted for composition since last requestVideoFrameCallback, usually is 1.
-        // metadata.mediaTime - like video.currentTime, in seconds
 
         if (this.isPlaying) {
           frameDetails.isFetching = false;
           return; // we don't want to complicate code by
-          // implementing canceling the requestVideoFrameCallback once video start playing, so
+          // implementing canceling the currently attached requestVideoFrameCallback once video start playing, so
           // we will just avoid the effect of requestVideoFrameCallback
+        }
+        this.html.pause(); // in retry() function we are playing video to avoid getting stuck, so we make pause here ot make sure it stops
+        const frameTimeDiff = Math.abs(
+          metadata.mediaTime - this.html.currentTime
+        );
+        if (frameTimeDiff > 0.04) {
+          retry();
+          return;
         }
 
         this.requestedFrames = this.requestedFrames.filter(
@@ -181,7 +187,6 @@ export default class MiniatureVideo {
         );
 
         if (frameDetails.cache) {
-          const start = performance.now();
           this.fetchedFramesMs.push(frameDetails.time);
 
           gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, this.pbo);
@@ -206,12 +211,6 @@ export default class MiniatureVideo {
             0
           );
           gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
-
-          const end = performance.now();
-          avgValue += end - start;
-          avgNumber++;
-
-          console.log("avg", avgValue / avgNumber);
         }
 
         /* COPY PIXELS FROM CURRENT FRAME BUFFER INTO TEXTURE */
@@ -257,12 +256,11 @@ export default class MiniatureVideo {
     callback: VoidFunction,
     cache: boolean
   ): boolean {
-    const alreadyExists = this.requestedFrames.some(
+    const alreadyRequested = this.requestedFrames.some(
       (frame) => frame.time === msOffset
     );
 
-    if (alreadyExists) return false;
-
+    if (alreadyRequested) return false;
     this.requestedFrames.push({
       time: msOffset,
       callback,
@@ -270,14 +268,16 @@ export default class MiniatureVideo {
       cache,
     });
 
-    const isAnyDuringFetch = this.requestedFrames.some(
-      (frame) => frame.isFetching
-    );
-    if (!isAnyDuringFetch) {
-      this.fetchNextFrame();
-    }
-
     return true;
+  }
+
+  public triggerRequest() {
+    if (this.isPlaying) return;
+
+    const isFetching = this.requestedFrames.some((frame) => frame.isFetching);
+    if (this.requestedFrames.length > 0 && !isFetching) {
+      this.fetchNextFrame(); // it should be moved to the end of render. Only after a render there can be a new item here.
+    }
   }
 
   /* return true if request has been added to queue, so callback will be called in the future */
@@ -302,15 +302,10 @@ export default class MiniatureVideo {
     this.currTime = time;
     this.html.play();
     this.isPlaying = true;
-
-    this.html.requestVideoFrameCallback(() => {
-      this.sourceReady = true;
-    });
   }
 
   public pause = () => {
     this.html.pause();
     this.isPlaying = false;
-    this.sourceReady = false;
   };
 }

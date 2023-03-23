@@ -2,13 +2,13 @@ import { skeletonSize } from "UI";
 import { drawCircle, drawTexture, drawTexture3D } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 import m3 from "utils/m3";
-import { State } from "initCreator";
 import { canvasMatrix } from "programs/canvasMatrix";
 import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
 import Texture from "models/Texture";
 import DrawCircle from "programs/DrawCircle";
 import FrameBuffer from "models/FrameBuffer";
 import { getIdFromLastRender } from "utils/id";
+import State from "State";
 
 const BUFFER_SIZE = 1;
 
@@ -35,7 +35,7 @@ export default class Handles {
   //   );
   // }
 
-  public updateSelection(state: State, x: number, y: number) {
+  public updateSelection = (state: State, x: number, y: number) => {
     const gl = window.gl;
     const snow = state.snow;
     if (!snow) return 0;
@@ -65,7 +65,7 @@ export default class Handles {
     );
 
     return getIdFromLastRender();
-  }
+  };
 
   public render(state: State) {
     const gl = window.gl;
@@ -74,7 +74,7 @@ export default class Handles {
 
     const positions = snow.curve.flatMap((point) => [point.x, point.y]);
     const colors = snow.curve.flatMap((point) =>
-      state.selectionId === point.id ? [0, 1, 0, 1] : [1, 1, 1, 1]
+      state.selectedHandler === point ? [0, 1, 0, 1] : [1, 1, 1, 1]
     );
     setupRenderTarget(null);
     this.vao.setPos(new Float32Array(positions));
