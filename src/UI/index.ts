@@ -129,13 +129,17 @@ export function initUI(state: State) {
   window.addEventListener("resize", updateSkeletonSize);
 
   timelineSlider.addEventListener("scroll", () => {
-    // remember that event is triggered also by setting scroll position from code,
-    // like we do in updateTimelineScroll
-    if (!state.video.isPlaying) {
-      // update is performed in initCreator already
-      state.currTime = timelineSlider.scrollLeft * MS_PER_PIXEL;
-      state.refresh();
-    }
+    if (state.video.isPlaying) return;
+    // update of time is performed in initCreator already
+    // and because update of time cause update of scroll, we need to ignore it here
+
+    const timeFromScroll = timelineSlider.scrollLeft * MS_PER_PIXEL;
+    // on mobile you can scroll out of range
+    state.currTime = Math.min(
+      Math.max(0, timeFromScroll),
+      state.video.duration
+    );
+    state.refresh();
   });
 
   timelineSlider.addEventListener("mousedown", () => {
