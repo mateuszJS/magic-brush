@@ -22,7 +22,11 @@
 
 :root {
   --color-background: #000;
-  --space: 50px;
+  --space: 20px;
+
+  @media (min-width: 600px) {
+    --space: 50px;
+  }
 }
 
 body {
@@ -35,7 +39,7 @@ main {
   height: calc(var(--vh, 1vh) * 100);
   
   display: grid;
-  grid-template-rows: 1fr var(--space) 100px var(--space) 100px var(--space);
+  grid-template-rows: 1fr var(--space) calc(2 * var(--space)) var(--space) calc(2 * var(--space)) var(--space);
 
   grid-template-areas: "preview"
     "."
@@ -70,8 +74,8 @@ main {
 .timeline-pointer {
   position: absolute;
   width: 4px;
-  height: calc(100% + 40px);
-  top: -20px;
+  height: calc(100% + calc(0.8 * var(--space)));
+  top: calc(0.2 * var(--space));
   left: calc(50% - 2px);
   background: tomato;
 }

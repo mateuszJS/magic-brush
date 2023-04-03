@@ -2,12 +2,13 @@
   grid-area: toolbar;
   
   display: flex;
-  height: 100px;
+  height: calc(2 * var(--space));
 
   outline: 5px solid lime;
 
   button {
-    padding: 10px 30px;
+    // padding: 10px 30px;
+    padding: calc(0.2 * var(--space)) calc(0.7 * var(--space));
     transition: background 0.3s ease;
     &:hover {
       background: rgba(255, 255, 255, 0.2);
@@ -22,5 +23,10 @@
 
   .hide {
     display: none;
+  }
+
+  input[type="range"] {
+    flex-grow: 1;
+    margin: 0 calc(0.3 * var(--space));
   }
 }

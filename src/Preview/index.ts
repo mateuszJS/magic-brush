@@ -117,7 +117,7 @@ export default class Preview {
 
     const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75;
     const threshold = Math.min(100, speedThreshold);
-    // console.log("threshold", threshold);
+
     const closestCachedTime =
       Math.round(state.currTime / MS_PER_MINI) * MS_PER_MINI;
     const distanceToClosestCacheTime = Math.abs(

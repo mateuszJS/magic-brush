@@ -2,7 +2,7 @@ import { drawBezier } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 import { canvasMatrix } from "programs/canvasMatrix";
 import DrawBezier from "programs/DrawBezier";
-import snowFlakePng from "assets/snow-flakes.png";
+import brushPng from "assets/pattern.png";
 import Texture from "models/Texture";
 import State from "State";
 
@@ -24,7 +24,7 @@ export default class Effects {
     this.tex = new Texture();
 
     const img = new Image();
-    img.src = snowFlakePng;
+    img.src = brushPng;
     img.onload = () => {
       this.tex.fill(img);
     };
@@ -32,21 +32,27 @@ export default class Effects {
 
   public render(state: State) {
     const gl = window.gl;
-    const snow = state.snow;
-    if (!snow) return;
+    if (state.simplePath.length < 2) return;
 
     setupRenderTarget(null);
-    const [p1, p2, p3, p4] = snow.curve;
-    drawBezier.setup(
-      this.vao,
-      canvasMatrix,
-      p1,
-      p2,
-      p3,
-      p4,
-      this.tex.bind(0),
-      (state.currTime / state.video.duration) * 10
-    );
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, ITER);
+    for (let i = 0; i + 2 < state.simplePath.length - 1; i += 3) {
+      const p1 = state.simplePath[i + 0];
+      const p2 = state.simplePath[i + 1];
+      const p3 = state.simplePath[i + 2];
+      const p4 = state.simplePath[i + 3];
+
+      drawBezier.setup(
+        this.vao,
+        canvasMatrix,
+        p1,
+        p2,
+        p3,
+        p4,
+        this.tex.bind(0),
+        (state.currTime / state.video.duration) * 10
+      );
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, ITER);
+    }
+    gl.bindVertexArray(null);
   }
 }

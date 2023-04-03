@@ -17,7 +17,7 @@ export default class Handles {
   private fbo: FrameBuffer;
 
   constructor() {
-    this.vao = drawCircle.createVAO();
+    this.vao = drawCircle.createVAO(30);
     this.fbo = new FrameBuffer();
     this.fbo.resize(BUFFER_SIZE, BUFFER_SIZE);
   }
@@ -63,7 +63,7 @@ export default class Handles {
       0,
       snow.curve.length
     );
-
+    gl.bindVertexArray(null);
     return getIdFromLastRender();
   };
 
@@ -87,5 +87,6 @@ export default class Handles {
       0,
       snow.curve.length
     );
+    gl.bindVertexArray(null);
   }
 }

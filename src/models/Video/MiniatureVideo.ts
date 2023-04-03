@@ -148,7 +148,9 @@ export default class MiniatureVideo {
 
     const retry = () => {
       // sometimes requestVideoFrameCallback get stuck(tested on iPhone 13 Pro, chrome and safari)
-      this.html.play();
+      this.html.play().catch((err) => {
+        // the sequence play() -> pause() -> play() can cause rejection of last play
+      });
       this.requestVideoFrame(frameDetails); // not sure if we need to aks for another one
     };
 
@@ -177,7 +179,7 @@ export default class MiniatureVideo {
         const frameTimeDiff = Math.abs(
           metadata.mediaTime - this.html.currentTime
         );
-        if (frameTimeDiff > 0.04) {
+        if (frameTimeDiff > 0.1) {
           retry();
           return;
         }

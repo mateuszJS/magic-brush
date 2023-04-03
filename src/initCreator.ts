@@ -7,12 +7,14 @@ import Preview from "Preview";
 import Handles from "Handles";
 import Effects from "Effects";
 import State from "State";
+import CurveSkeleton from "CurveSkeleton";
 
 function runCreator(state: State) {
   const effects = new Effects();
   const preview = new Preview(state);
   const timeline = new Timeline(state);
   const handles = new Handles();
+  const curveSkeleton = new CurveSkeleton();
 
   state.testSelection = handles.updateSelection;
 
@@ -38,6 +40,7 @@ function runCreator(state: State) {
       handles.render(state);
       timeline.render(state);
       effects.render(state);
+      curveSkeleton.render(state);
       state.video.triggerRequest();
     }
 
