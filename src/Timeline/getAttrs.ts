@@ -45,7 +45,7 @@ export function getAttrs(videoWidth: number, videoHeight: number) {
       const offsetXAttr = new Float32Array(
         Array.from(
           { length: maxMinisQuantity },
-          (_, index) => index * (MINI_SIZE / window.gl.drawingBufferWidth) * 2
+          (_, index) => index * (MINI_SIZE / window.gl.canvas.clientWidth) * 2
         )
       );
       const depthAttr = new Float32Array(

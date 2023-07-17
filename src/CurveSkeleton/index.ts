@@ -24,7 +24,7 @@ export default class CurveSkeleton {
     let circleColor: number[] = [];
     const lines: [Point, Point][] = [];
     const linesColor: vec4[] = [];
-
+    setupRenderTarget(null);
     for (let i = 0; i + 2 < points.length - 1; i += 3) {
       const p1 = points[i + 0];
       const p2 = points[i + 1];
@@ -77,7 +77,6 @@ export default class CurveSkeleton {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       gl.bindVertexArray(null);
     });
-
     this.circleVao.setPos(new Float32Array(circlePos));
     this.circleVao.setColor(new Float32Array(circleColor));
     drawCircle.setup(this.circleVao, canvasMatrix);

@@ -1,10 +1,11 @@
-import { drawBezier } from "programs";
+import { drawBezier, drawBezierPick, drawLine } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 import { canvasMatrix } from "programs/canvasMatrix";
 import DrawBezier from "programs/DrawBezier";
-import brushPng from "assets/pattern.png";
+import brushPng from "assets/wave.png";
 import Texture from "models/Texture";
 import State from "State";
+import getBezierPos from "utils/getBezierPos";
 
 const ITER = 102;
 
@@ -15,44 +16,96 @@ if ((ITER / 2) % 2 === 0) {
   throw Error("ITER number divided by 2 must be odd");
 }
 
+const TEX_COORD_PRECISION = 10;
+
+function getDistances(p1: Point, p2: Point, p3: Point, p4: Point): number[] {
+  const distances: number[] = [0];
+
+  for (let i = 0; i < TEX_COORD_PRECISION; i++) {
+    const pointA = getBezierPos(p1, p2, p3, p4, i / TEX_COORD_PRECISION);
+    const pointB = getBezierPos(p1, p2, p3, p4, (i + 1) / TEX_COORD_PRECISION);
+    const distance = Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
+    const prevDistance =
+      distances.length > 0 ? distances[distances.length - 1] : 0;
+    distances.push(distance + prevDistance);
+  }
+
+  return distances;
+}
+
 export default class Effects {
   private vao: ReturnType<DrawBezier["createVAO"]>;
   private tex: Texture;
+  private brushAspectRatio: number;
+  private thickLine: [Point, Point] | null;
 
   constructor() {
     this.vao = drawBezier.createVAO(ITER);
     this.tex = new Texture();
+    this.brushAspectRatio = 1;
+    this.thickLine = null;
 
     const img = new Image();
     img.src = brushPng;
     img.onload = () => {
       this.tex.fill(img);
+      this.brushAspectRatio = img.width / img.height;
     };
   }
 
-  public render(state: State) {
+  private draw(state: State, matrix: Mat3, isPick: boolean) {
+    const program = isPick ? drawBezierPick : drawBezier;
     const gl = window.gl;
-    if (state.simplePath.length < 2) return;
-
-    setupRenderTarget(null);
+    const thickness = 200 / this.brushAspectRatio;
+    let prevTexCoordYoffset = 0;
     for (let i = 0; i + 2 < state.simplePath.length - 1; i += 3) {
       const p1 = state.simplePath[i + 0];
       const p2 = state.simplePath[i + 1];
       const p3 = state.simplePath[i + 2];
       const p4 = state.simplePath[i + 3];
 
-      drawBezier.setup(
+      const distances = getDistances(p1, p2, p3, p4);
+      const splineOffset = state.currTime / state.video.duration;
+
+      const getTexCoord = (t: number) => {
+        const topIndex = Math.ceil(t * TEX_COORD_PRECISION);
+        const bottomIndex = Math.floor(t * TEX_COORD_PRECISION);
+        const diff = t * TEX_COORD_PRECISION - bottomIndex; // <0, 1>
+        const distanceAvg =
+          (1 - diff) * distances[bottomIndex] + diff * distances[topIndex];
+        const offset = i === 0 ? splineOffset : 0; // just an additional effect to animate the brush
+        return prevTexCoordYoffset + distanceAvg / thickness + offset;
+      };
+
+      this.vao.updateTexCoordY(getTexCoord);
+
+      program.setup(
         this.vao,
-        canvasMatrix,
+        matrix,
         p1,
         p2,
         p3,
         p4,
         this.tex.bind(0),
-        (state.currTime / state.video.duration) * 10
+        isPick ? i / 3 : 0
       );
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, ITER);
+      prevTexCoordYoffset = getTexCoord(1);
     }
     gl.bindVertexArray(null);
+  }
+
+  public renderPick(state: State, matrix: Mat3) {
+    if (state.simplePath.length < 2) return;
+
+    this.draw(state, matrix, true);
+  }
+
+  public render(state: State) {
+    if (state.simplePath.length < 2) return;
+
+    setupRenderTarget(null);
+
+    this.draw(state, canvasMatrix, false);
   }
 }

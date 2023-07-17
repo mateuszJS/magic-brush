@@ -5,14 +5,7 @@ import { compileShader } from "programs/utils/compileShader";
 import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
 import linkProgram from "programs/utils/linkProgram";
-
-function normalizeVector2(vec: Point): Point {
-  const length = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
-  return {
-    x: vec.x / length,
-    y: vec.y / length,
-  };
-}
+import normalizeVec2 from "utils/normalizeVec2";
 
 const attrs = {
   pos: 0,
@@ -60,7 +53,7 @@ export default class DrawLine {
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
     // [-y, x], [y, -x]
-    const directionTan = normalizeVector2({
+    const directionTan = normalizeVec2({
       x: p2.x - p1.x,
       y: p2.y - p1.y,
     });

@@ -4,11 +4,11 @@ export default class FrameBuffer {
   readonly texture: Texture;
   readonly frameBufferLocation: WebGLFramebuffer;
 
-  constructor() {
+  constructor(texture?: Texture) {
     const gl = window.gl;
     // not sure if texture should be here, or should it be passed from arguments
     // also most of this constructor should be actually in render or attach
-    this.texture = new Texture();
+    this.texture = texture || new Texture();
 
     const newFrameBuffer = gl.createFramebuffer();
     if (!newFrameBuffer) {

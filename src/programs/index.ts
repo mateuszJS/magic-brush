@@ -12,6 +12,7 @@ export let drawTexture: DrawTexture;
 export let drawCircle: DrawCircle;
 export let drawCirclePick: DrawCircle;
 export let drawBezier: DrawBezier;
+export let drawBezierPick: DrawBezier;
 export let simpleDrawBezier: SimpleDrawBezier;
 export let drawPoints: DrawPoints;
 export let drawLine: DrawLine;
@@ -22,7 +23,8 @@ export function compilePrograms() {
   drawTexture = new DrawTexture();
   drawCircle = new DrawCircle(false);
   drawCirclePick = new DrawCircle(true);
-  drawBezier = new DrawBezier();
+  drawBezier = new DrawBezier(false);
+  drawBezierPick = new DrawBezier(true);
   simpleDrawBezier = new SimpleDrawBezier();
   drawPoints = new DrawPoints();
   drawLine = new DrawLine();

@@ -1,8 +1,11 @@
 #version 300 es
 
+//#define PICK
+
 in float t;
 in float dir; // -1, 0 or 1
-in float aTexOffset;
+in float aTexCoorX;
+in float aTexCoorY;
 in float aThick;
 
 uniform mat3 uMatrix;
@@ -12,9 +15,10 @@ uniform vec2 p2;
 uniform vec2 p3;
 uniform vec2 p4;
 uniform float uTOffset;
+uniform float uPrevT; // only for picking
 
-out float vTexOffset;
-out float vT;
+out float vTexCoorX;
+out float vTexCoordY;
 
 void main () {
   float t2 = t * t;
@@ -26,8 +30,13 @@ void main () {
   vec2 angleNorm = normalize(angle) * 100.0 * aThick;
   vec2 transPos = vec2(pos.x - angleNorm.y * dir, pos.y + angleNorm.x * dir);
 
-  vTexOffset = aTexOffset;
-  vT = t + uTOffset;
+  vTexCoorX = aTexCoorX;
+  #ifdef PICK
+    vTexCoordY = uPrevT + t;
+  #else
+    vTexCoordY = aTexCoorY;
+  #endif
+  
 
   gl_Position = vec4((uMatrix * vec3(transPos, 1)).xy, 0.0, 1.0);
 }

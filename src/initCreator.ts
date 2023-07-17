@@ -4,7 +4,7 @@ import { calcMatrix } from "programs/canvasMatrix";
 import resizeCanvas from "utils/resizeCanvas";
 import Timeline from "Timeline";
 import Preview from "Preview";
-import Handles from "Handles";
+import Interactivity from "Interactivity";
 import Effects from "Effects";
 import State from "State";
 import CurveSkeleton from "CurveSkeleton";
@@ -13,10 +13,9 @@ function runCreator(state: State) {
   const effects = new Effects();
   const preview = new Preview(state);
   const timeline = new Timeline(state);
-  const handles = new Handles();
   const curveSkeleton = new CurveSkeleton();
-
-  state.testSelection = handles.updateSelection;
+  const drawCalls = [(matrix: Mat3) => effects.renderPick(state, matrix)];
+  const interactivity = new Interactivity(state, drawCalls);
 
   function draw(now: DOMHighResTimeStamp) {
     let { needsRefresh } = state; // make save copy of needsRefresh value
@@ -37,10 +36,10 @@ function runCreator(state: State) {
 
     if (needsRefresh) {
       preview.render(state);
-      handles.render(state);
       timeline.render(state);
       effects.render(state);
       curveSkeleton.render(state);
+      interactivity.render(state);
       state.video.triggerRequest();
     }
 
@@ -51,9 +50,7 @@ function runCreator(state: State) {
 }
 
 function onResize(state: State) {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty("--vh", `${vh}px`);
-  resizeCanvas(); // remember to always firstly setup --vh in css
+  resizeCanvas();
   calcMatrix(); // remember to firstly set size of canvas!
   state.refresh();
 }
@@ -62,5 +59,5 @@ export default function initCreator(videoUrl: string) {
   const state = new State(videoUrl, runCreator);
   onResize(state);
   window.addEventListener("resize", () => onResize(state));
-  initUI(state); // UI initialize skeletonSize, what has to be calculated AFTER setting --vh variable in css to make measurements correctly
+  initUI(state);
 }

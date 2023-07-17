@@ -10,6 +10,7 @@ out vec4 fragColor;
 
 void main () {
   vec4 texel = texture(uTex, vec2(vTexCoorX, vTexCoordY));
-  fragColor = vec4(vTexCoordY / 10.0, texel.gb * texel.a, texel.a);
-  // fragColor = vec4(vTexOffset, vT, 0, 1);
+  // fragColor = vec4(0, 1, 0, 1);
+  fragColor = vec4(vTexCoorX, vTexCoordY, 1.0, 1.0);
 }
+// https://stackoverflow.com/questions/45571488/webgl-2-readpixels-on-framebuffers-with-float-textures

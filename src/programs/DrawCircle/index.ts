@@ -7,18 +7,18 @@ import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
 import linkProgram from "programs/utils/linkProgram";
 
-interface EditableVao {
-  vao: WebGLVertexArrayObject;
-  setColor: (colors: BufferSource) => void;
-  setPos: (data: BufferSource) => void;
-}
-
 const attrs = {
   aVertOffset: 0,
   aNormPos: 2,
   aColor: 1,
   aPos: 3,
 } as const;
+
+interface EditableVao {
+  vao: WebGLVertexArrayObject;
+  setColor: (colors: BufferSource) => void;
+  setPos: (data: BufferSource) => void;
+}
 
 const INDEXES = new Uint16Array([0, 1, 2, 1, 2, 3]);
 const VERTICES_OFFSET = [-1, -1, -1, +1, +1, -1, +1, +1];
@@ -62,7 +62,8 @@ export default class DrawCircle {
     }
 
     gl.bindVertexArray(vao);
-
+    const setColor = setAttribute(attrs.aColor, 4, "instance");
+    const setPos = setAttribute(attrs.aPos, 2, "instance");
     setAttribute(
       attrs.aVertOffset,
       2,
@@ -70,8 +71,6 @@ export default class DrawCircle {
       new Float32Array(VERTICES_OFFSET.map((v) => v * radius))
     );
     setAttribute(attrs.aNormPos, 2, "vertex", new Float32Array(NORMS));
-    const setColor = setAttribute(attrs.aColor, 4, "instance");
-    const setPos = setAttribute(attrs.aPos, 2, "instance");
     setIndex(INDEXES);
 
     gl.bindVertexArray(null);
@@ -83,10 +82,10 @@ export default class DrawCircle {
     };
   }
 
-  public setup(editVao: EditableVao, matrix: Mat3) {
+  public setup(vao: EditableVao, matrix: Mat3) {
     const gl = window.gl;
     gl.useProgram(this.program);
-    gl.bindVertexArray(editVao.vao);
+    gl.bindVertexArray(vao.vao);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
   }
 }

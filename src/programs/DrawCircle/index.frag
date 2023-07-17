@@ -21,5 +21,6 @@ void main () {
   // vec2 st = gl_FragCoord.xy / 1939.0;
   // fragColor = vColor;
   // fragColor = vec4(vec3(vColor * circle(vNormPos, 0.9)), 1);
+  // fragColor = vec4(1, 0, 0, 1);
   fragColor = vColor * circle(vNormPos);
 }

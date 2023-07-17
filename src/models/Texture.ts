@@ -39,6 +39,7 @@ export default class Texture {
       | HTMLImageElement
       | { html: HTMLVideoElement; width: number; height: number }
       | FrameBuffer
+      | { width: number; height: number; isFloat: true } // float point texture
   ) {
     const gl = window.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -84,8 +85,8 @@ export default class Texture {
       this._height = input.texture.height;
       this._aspect = input.texture.width / input.texture.height;
 
-      return; // frameBuffer has special case fo filling size, what is handled above
-    } else if (input.width && input.height) {
+      return; // frameBuffer has special case for setting the size of texture, what is handled above
+    } else if ("color" in input) {
       if (input.width !== this._width || input.height !== this._height) {
         gl.texImage2D(
           gl.TEXTURE_2D,
@@ -106,6 +107,24 @@ export default class Texture {
           // null
         );
       }
+    } else if ("isFloat" in input) {
+      const internalFormat = gl.RGBA32F;
+      const format = gl.RGBA;
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+      // floating point texture
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        internalFormat,
+        input.width,
+        input.height,
+        0,
+        format,
+        gl.FLOAT,
+        null
+      );
     } else {
       throw Error("Texture was not filled with any data!");
     }
