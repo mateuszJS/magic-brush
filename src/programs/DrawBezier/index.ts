@@ -10,6 +10,7 @@ import linkProgram from "programs/utils/linkProgram";
 interface EditableVao {
   vao: WebGLVertexArrayObject;
   updateTexCoordY(getTexCoordY: (t: number) => number): void;
+  updateThickness(getThickness: (t: number) => number): void;
 }
 
 const attrs = {
@@ -90,8 +91,10 @@ export default class DrawBezier {
     const dir2 = Array.from({ length: halfIter }, (_, i) => (i % 2 ? -1 : 0));
     setAttribute(attrs.dir, 1, undefined, new Float32Array([...dir1, ...dir2]));
 
-    const thickness = t.map((_t) => Math.max(1, 1 - Math.abs(_t - 0.5) * 2));
-    setAttribute(
+    const thickness = t.map((_t) => _t);
+    // const thickness = t.map((_t) => Math.max(1, 1 - Math.abs(_t - 0.5) * 2));
+    console.log("thickness", t, thickness);
+    const updateThickness = setAttribute(
       attrs.aThick,
       1,
       undefined,
@@ -126,6 +129,10 @@ export default class DrawBezier {
       updateTexCoordY(getTexCoordY) {
         const coordsY = t.map((_t) => getTexCoordY(_t));
         updateTexCoordY(new Float32Array([...coordsY, ...coordsY.reverse()]));
+      },
+      updateThickness(getThickness) {
+        const coordsY = t.map((_t) => getThickness(_t));
+        updateThickness(new Float32Array([...coordsY, ...coordsY.reverse()]));
       },
     };
   }

@@ -88,7 +88,7 @@ export default class Interactivity {
       }
       case ControlType.path: {
         if (this.pointerIsDown) {
-          this.stateRef.handlePathPointerDown(green, red);
+          this.stateRef.handlePathPointerDown(green, red, x, y);
         } else {
           this.stateRef.handlePathHover(green, red);
         }

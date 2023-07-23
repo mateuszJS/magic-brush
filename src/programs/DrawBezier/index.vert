@@ -27,7 +27,7 @@ void main () {
   vec2 pos = p1 * one_minus_t2 * one_minus_t + p2 * 3.0 * t * one_minus_t2 + p3 * 3.0 * t2 * one_minus_t + p4 * t2 * t;
 
   vec2 angle = one_minus_t2 * (p2 - p1) + 2.0 * t * one_minus_t * (p3 - p2) + t2 * (p4 - p3);
-  vec2 angleNorm = normalize(angle) * 100.0 * aThick;
+  vec2 angleNorm = normalize(angle) * aThick;
   vec2 transPos = vec2(pos.x - angleNorm.y * dir, pos.y + angleNorm.x * dir);
 
   vTexCoorX = aTexCoorX;
