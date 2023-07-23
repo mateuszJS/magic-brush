@@ -29,7 +29,7 @@ export default function initWebGL2(canvas: HTMLCanvasElement) {
   // https://webglfundamentals.org/webgl/lessons/webgl-and-alpha.html
   // gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-  return gl;
+  return gl as WebGL2RenderingContext & { canvas: HTMLCanvasElement };
 
   /*
   const maxSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)

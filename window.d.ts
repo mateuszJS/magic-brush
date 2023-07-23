@@ -7,6 +7,6 @@ declare global {
     startRecordBtn: HTMLButtonElement;
     stopRecordBtn: HTMLButtonElement;
 
-    gl: WebGL2RenderingContext;
+    gl: WebGL2RenderingContext & { canvas: HTMLCanvasElement };
   }
 }

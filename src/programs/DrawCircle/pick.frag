@@ -18,4 +18,4 @@ void main () {
   // fragColor = vColor;
   // fragColor = vec4(vec3(vColor * circle(vNormPos, 0.9)), 1);
   fragColor = vColor * circle(vNormPos);
-}
+} 

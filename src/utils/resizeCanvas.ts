@@ -1,8 +1,8 @@
 export default function resizeCanvas() {
-  const canvas = window.gl.canvas as HTMLCanvasElement;
-
-  const displayWidth = canvas.clientWidth;
-  const displayHeight = canvas.clientHeight;
+  const canvas = window.gl.canvas;
+  const dpr = window.devicePixelRatio;
+  const displayWidth = Math.round(canvas.clientWidth * dpr);
+  const displayHeight = Math.round(canvas.clientHeight * dpr);
   // Check if the canvas is not the same size.
   const needResize =
     canvas.width !== displayWidth || canvas.height !== displayHeight;
