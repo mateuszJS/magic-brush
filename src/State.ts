@@ -10,6 +10,7 @@ import getBezierPos from "utils/getBezierPos";
 import getBezierTan from "utils/getBezierTan";
 import distanceFromPointToLine from "utils/distanceFromPointToLine";
 import getCurveLength from "utils/getCurveLength";
+import getPathWidth from "utils/getPathWidth";
 
 interface HandlePoint {
   id: number;
@@ -216,14 +217,15 @@ export default class State {
     const [pointOnCurve, curveTan] = this.getPosAndTan(pathProgress);
     // maybe we should move above to preview/pick. Since it's more there related than to State
     const offset = Math.abs(pathOffset - 0.5) * 2;
+    const width = getPathWidth(pathProgress, this);
     const l1 = {
-      x: pointOnCurve.x - curveTan.y * 100 * offset, // IT WON"T BE ALWAYS 100! it will be actual thickness in this particular point on the path
-      y: pointOnCurve.y + curveTan.x * 100 * offset,
+      x: pointOnCurve.x - curveTan.y * width * offset, // IT WON"T BE ALWAYS 100! it will be actual thickness in this particular point on the path
+      y: pointOnCurve.y + curveTan.x * width * offset,
     };
 
     const l2 = {
-      x: pointOnCurve.x + curveTan.y * 100 * offset,
-      y: pointOnCurve.y - curveTan.x * 100 * offset,
+      x: pointOnCurve.x + curveTan.y * width * offset,
+      y: pointOnCurve.y - curveTan.x * width * offset,
     };
 
     this.thickLine = [l1, l2];
