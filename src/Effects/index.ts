@@ -4,8 +4,7 @@ import { canvasMatrix } from "programs/canvasMatrix";
 import DrawBezier from "programs/DrawBezier";
 import brushPng from "assets/wave.png";
 import Texture from "models/Texture";
-import State from "State";
-import getBezierPos from "utils/getBezierPos";
+import State, { DEFAULT_OFFSET } from "State";
 import getCurveLength from "utils/getCurveLength";
 import getPathWidth from "utils/getPathWidth";
 
@@ -24,13 +23,11 @@ export default class Effects {
   private vao: ReturnType<DrawBezier["createVAO"]>;
   private tex: Texture;
   private brushAspectRatio: number;
-  private thickLine: [Point, Point] | null;
 
   constructor() {
     this.vao = drawBezier.createVAO(ITER);
     this.tex = new Texture();
     this.brushAspectRatio = 1;
-    this.thickLine = null;
 
     const img = new Image();
     img.src = brushPng;
@@ -67,7 +64,8 @@ export default class Effects {
       this.vao.updateTexCoordY(getTexCoord);
 
       const getThickness = (t: number) => {
-        const globalT = i / 3 + t; // it's not between two points, it's T of whole path
+        const globalT = i / 3 + t; // state.widthPoints are divided per segments
+        if (state.widthPoints.length === 0) return DEFAULT_OFFSET;
 
         return getPathWidth(globalT, state);
       };

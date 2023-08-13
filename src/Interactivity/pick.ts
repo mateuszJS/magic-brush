@@ -6,7 +6,7 @@ import m3 from "utils/m3";
 export enum ControlType {
   nil = 0,
   path = 1,
-  thickness = 2,
+  width = 2,
 }
 
 export type DrawCall = (matrix: Mat3) => void;
@@ -16,11 +16,10 @@ const NO_SELECTION = new Float32Array([0, 0, 0, 0]);
 
 export default function pick(
   path: Point[],
-  x: number,
-  y: number,
+  pointer: Point,
   drawCalls: DrawCall[]
 ) {
-  if (path.length < 2) return NO_SELECTION;
+  if (path.length < 2) return NO_SELECTION; // it's just optimization, can be omitted
 
   const gl = window.gl;
   const texture = new Texture();
@@ -36,8 +35,8 @@ export default function pick(
 
   const translatedMatrix = m3.translate(
     m3.projectionFlipY(BUFFER_SIZE, BUFFER_SIZE),
-    -x,
-    -y
+    -pointer.x,
+    -pointer.y
   );
 
   // draw complicated items with the usage of other classes, like bezier curves

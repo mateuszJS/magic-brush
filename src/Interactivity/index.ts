@@ -1,156 +1,231 @@
 import { skeletonSize } from "UI";
-import { drawCircle, drawLine, drawTexture, drawTexture3D } from "programs";
+import { drawCircle, drawLine } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
-import m3 from "utils/m3";
 import { canvasMatrix } from "programs/canvasMatrix";
-import { MINI_SIZE, MS_PER_MINI, MS_PER_PIXEL } from "consts";
-import Texture from "models/Texture";
 import DrawCircle from "programs/DrawCircle";
-import FrameBuffer from "models/FrameBuffer";
-import { getVec3IdFromLastRender } from "utils/id";
 import State from "State";
 import attachListeners from "./attachListeners";
-import getBezierTan from "utils/getBezierTan";
-import getBezierPos from "utils/getBezierPos";
 import pick, { ControlType, DrawCall } from "./pick";
+import getPathWidth from "utils/getPathWidth";
 
 const THICKNESS_SIZE_CONTROLS = 10;
 
-interface Control {
-  id: number;
-  idVec4: vec4;
-  x: number;
-  y: number;
-  type: ControlType;
+function getWidthsFootprintFromState(state: State) {
+  return `${state.simplificationFactor} ${state.simplePath.length}`;
 }
 
 export default class Interactivity {
   private circleThicknessVao: ReturnType<DrawCircle["createVAO"]>;
   // private fbo: FrameBuffer;
   private pointerIsDown: boolean;
-  private pointerOffset: Point;
-  private newPointerPos: Point | null;
+  private activeWidthPoint: { index: number; progress: number } | null; // counted in segment progress
+  private lastWidthsFootprint: string;
+  private widthIndicators: Line[];
+  private previewWidthProgress: number | null;
 
   constructor(private stateRef: State, private drawCalls: DrawCall[]) {
     this.circleThicknessVao = drawCircle.createVAO(THICKNESS_SIZE_CONTROLS);
-    // this.fbo = new FrameBuffer();
-    // this.fbo.resize(BUFFER_SIZE, BUFFER_SIZE);
     this.pointerIsDown = false;
-    this.pointerOffset = { x: 0, y: 0 };
-    this.newPointerPos = null; // set when mouse is moving, set to null once we get the update
+    this.activeWidthPoint = null;
+    this.previewWidthProgress = null;
+    this.lastWidthsFootprint = "";
+    this.widthIndicators = [];
 
     attachListeners(this.onPointerDown, this.onPointerMove, this.onPointerUp);
   }
 
-  public onPointerDown = (x: number, y: number) => {
+  public onPointerDown = (pointer: Point) => {
     this.pointerIsDown = true;
 
-    // const newSelectionId = this.pick(x, y);
-    // const newSelectedHandler = this.snow?.curve.find(
-    //   (point) => point.id === newSelectionId
-    // );
-
-    // if (newSelectedHandler) {
-    //   this.selectedHandler = newSelectedHandler;
-    //   this.pointerOffset = {
-    //     x: newSelectedHandler.x - x,
-    //     y: newSelectedHandler.y - y,
-    //   }
-    //   this.refresh();
-    // }
+    requestAnimationFrame(() => {
+      this.getHover(pointer);
+    });
   };
 
-  public onPointerUp = () => {
-    // this.selectedHandler = null;
-    this.stateRef.refresh();
+  public onPointerUp = (pointer: Point) => {
     this.pointerIsDown = false;
-  };
-
-  public onPointerMove = (x: number, y: number) => {
-    if (this.pointerIsDown) {
-      this.stateRef.addControlPoint(x, y);
-    } else {
-      this.newPointerPos = { x, y };
-      this.stateRef.refresh();
+    this.activeWidthPoint = null;
+    if (this.stateRef.brushMode) {
+      this.stateRef.addControlPoint(pointer, true);
     }
+    this.stateRef.refresh();
   };
 
-  private getHover(x: number, y: number) {
+  public onPointerMove = (pointer: Point) => {
+    // const  { stateRef } = this
+
+    if (this.activeWidthPoint) {
+      // we are in edit width for particular point mode
+      this.stateRef.updateWidthPoint(
+        this.activeWidthPoint.index,
+        this.activeWidthPoint.progress,
+        pointer
+      );
+      // we should avoid calling getHover as much as it's possible
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      this.getHover(pointer);
+    });
+  };
+
+  private getIndicator(segmentProgress: number): Line {
+    // pathProgress -> relative distance measured in number of points form the start <0, infinity>?
+    // pathOffset -> <0, 1>
+
+    const [pointOnCurve, curveTan] =
+      this.stateRef.getPosAndTan(segmentProgress);
+    // maybe we should move above to preview/pick. Since it's more there related than to State
+    const offset = Math.abs(1 - 0.5) * 2; // 1 can be replaced with real offset
+    const width = getPathWidth(segmentProgress, this.stateRef);
+    const p1 = {
+      x: pointOnCurve.x - curveTan.y * width * offset,
+      y: pointOnCurve.y + curveTan.x * width * offset,
+    };
+
+    const p2 = {
+      x: pointOnCurve.x + curveTan.y * width * offset,
+      y: pointOnCurve.y - curveTan.x * width * offset,
+    };
+
+    return [p1, p2];
+  }
+
+  private getHover(pointer: Point) {
+    const drawCalls = [
+      ...this.drawCalls,
+      ...this.widthIndicators.map<DrawCall>(
+        (indicator, index) => (matrix) =>
+          this.drawPickIndicator(matrix, indicator, index)
+      ),
+    ];
     const [red, green, blue] = Array.from(
-      pick(this.stateRef.simplePath, x, y, this.drawCalls)
+      pick(this.stateRef.simplePath, pointer, drawCalls)
     );
+
     const type = Math.round(blue);
 
     switch (type) {
       case ControlType.nil: {
-        this.stateRef.lostHover();
-        break;
-      }
-      case ControlType.path: {
-        if (this.pointerIsDown) {
-          this.stateRef.handlePathPointerDown(green, red, x, y);
-        } else {
-          this.stateRef.handlePathHover(green, red);
+        // previewWidthProgress is always null here
+        // if (this.activeWidthPoint !== null) {
+        //   // hide active indicator ONLY when we do not edit width right now
+        //   this.activeWidthPoint = null;
+        // }
+
+        if (this.previewWidthProgress !== null) {
+          this.previewWidthProgress = null;
+          this.stateRef.refresh();
+        }
+
+        if (this.pointerIsDown && this.stateRef.brushMode) {
+          this.stateRef.addControlPoint(pointer);
         }
         break;
       }
+      case ControlType.path: {
+        if (this.stateRef.brushMode) break;
+        // at this point this.activeWidthPoint should be null
+        if (this.pointerIsDown) {
+          // not sure if we nee to create activeWidthPoint here, or will be create anyway
+          // this one if condition should be moved to interactivity probably
+
+          // following code is just to see update right away
+          // otherwise user would need firstly to move the pointer to change the width
+          const index = this.stateRef.addWidthPoint(green, pointer);
+          this.activeWidthPoint = {
+            index,
+            progress: green,
+          };
+        }
+
+        this.previewWidthProgress = green;
+        this.stateRef.refresh();
+        break;
+      }
+      case ControlType.width: {
+        const index = Math.round(red);
+        const widthPoint = this.stateRef.widthPoints[index];
+        const segmentProgress =
+          widthPoint.progress * (this.stateRef.simplePath.length / 3);
+
+        if (this.pointerIsDown) {
+          this.activeWidthPoint = {
+            index,
+            progress: segmentProgress,
+          };
+
+          this.stateRef.updateWidthPoint(index, segmentProgress, pointer);
+        }
+        this.previewWidthProgress = segmentProgress;
+
+        this.stateRef.refresh();
+        break;
+      }
       default: {
-        throw Error("Not handled output!");
+        throw Error(`There is no such a type as ${type}.`);
       }
     }
   }
 
-  // public updateSelection = (state: State, x: number, y: number) => {
-  //   const gl = window.gl;
-  //   const snow = state.snow;
-  //   if (!snow) return 0;
+  private drawPickIndicator(matrix: Mat3, [p1, p2]: Line, index: number) {
+    const gl = window.gl;
+    const color: vec4 = [index, 0, ControlType.width, 1];
 
-  //   const translatedMatrix = m3.translate(
-  //     m3.projectionFlipY(BUFFER_SIZE, BUFFER_SIZE),
-  //     -x,
-  //     -y
-  //   );
+    drawLine.setup(matrix, p1, p2, color, color, 40, 20);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
+  }
 
-  //   const positions = snow.curve.flatMap((point) => [point.x, point.y]);
-  //   const colors = snow.curve.flatMap((point) => point.idVec4);
-  //   setupRenderTarget(this.fbo, [0, 0, 0, 1]);
-  //   this.vao.setPos(new Float32Array(positions));
-  //   this.vao.setColor(new Float32Array(colors));
-  //   drawCircle.setup(this.vao, translatedMatrix);
-  //   gl.drawElementsInstanced(
-  //     gl.TRIANGLES,
-  //     6,
-  //     gl.UNSIGNED_SHORT,
-  //     0,
-  //     snow.curve.length
-  //   );
-  //   gl.bindVertexArray(null);
-  //   return getVec3IdFromLastRender();
-  // };
+  private drawIndicator([p1, p2]: Line, isActive: boolean) {
+    const gl = window.gl;
+    const color1: vec4 = isActive ? [1, 1, 1, 1] : [1, 0, 0, 1];
+    const color2: vec4 = isActive ? [1, 1, 1, 1] : [0, 1, 0, 1];
+
+    drawLine.setup(canvasMatrix, p1, p2, color1, color2);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
+
+    const positions = [p1.x, p1.y, p2.x, p2.y];
+    const colors = [...color1 /* */, ...color2];
+    this.circleThicknessVao.setPos(new Float32Array(positions));
+    this.circleThicknessVao.setColor(new Float32Array(colors));
+    drawCircle.setup(this.circleThicknessVao, canvasMatrix);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, 2);
+    gl.bindVertexArray(null);
+  }
 
   public render(state: State) {
-    const { newPointerPos, stateRef } = this;
-    if (newPointerPos) {
-      this.getHover(newPointerPos.x, newPointerPos.y);
-      this.newPointerPos = null;
-    }
+    const { stateRef } = this;
 
-    const gl = window.gl;
+    if (stateRef.brushMode) return;
+
     setupRenderTarget(null);
-    if (stateRef.thickLine) {
-      const [p1, p2] = stateRef.thickLine;
-      drawLine.setup(canvasMatrix, p1, p2, [1, 1, 1, 1]);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      gl.bindVertexArray(null);
 
-      const positions = [p1.x, p1.y, p2.x, p2.y];
-      const colors = [1, 1, 1, 1 /* */, 1, 1, 1, 1];
-      this.circleThicknessVao.setPos(new Float32Array(positions));
-      this.circleThicknessVao.setColor(new Float32Array(colors));
-      drawCircle.setup(this.circleThicknessVao, canvasMatrix);
-      gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, 2);
-      gl.bindVertexArray(null);
+    const currWidthFootprint = getWidthsFootprintFromState(stateRef);
+
+    if (
+      stateRef.simplePath.length >= 2 &&
+      (this.activeWidthPoint !== null ||
+        this.lastWidthsFootprint !== currWidthFootprint)
+    ) {
+      // widths needs to be calculated again
+      this.lastWidthsFootprint = currWidthFootprint;
+      this.widthIndicators = state.widthPoints.map((widthPoint) =>
+        this.getIndicator(widthPoint.progress * (state.simplePath.length / 3))
+      );
     }
+
+    this.widthIndicators.forEach((indicator) =>
+      this.drawIndicator(indicator, false)
+    );
+
+    if (this.previewWidthProgress !== null) {
+      const activeIndicator = this.getIndicator(this.previewWidthProgress);
+      this.drawIndicator(activeIndicator, true);
+    }
+
     //   state.controls.forEach((control) => {
     //     switch (control.type) {
     //       case ControlType.thickness: {

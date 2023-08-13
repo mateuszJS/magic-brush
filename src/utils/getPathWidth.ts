@@ -1,17 +1,24 @@
 import State from "State";
+import getNearestIndex from "./getNearestIndex";
 
 /* globalT - between <0, state.simplePath.length / 3> */
-export default function getPathWidth(globalT: number, state: State) {
-  const totalGlobalT = state.simplePath.length / 3;
-  const progress = globalT / totalGlobalT;
-  const lowerPointThick = state.lineWidth.reduce(
-    (acc, thickPoint) => (thickPoint.progress < progress ? thickPoint : acc),
-    state.lineWidth[0]
+export default function getPathWidth(segmentProgress: number, state: State) {
+  const totalSegmentProgress = state.simplePath.length / 3; // 3 because one segment contains 4 in total, by dividing by 3 we got number of segment(two nodes and tow control points)
+  const progress = segmentProgress / totalSegmentProgress;
+
+  const nearestPointIndex = getNearestIndex(
+    progress,
+    state.widthPoints,
+    "progress"
   );
-  const lowerPointThickIndex = state.lineWidth.indexOf(lowerPointThick);
-  const upperPointThick = state.lineWidth[lowerPointThickIndex + 1];
-  // find two array of state.lineWidth where progress is between them
-  // 1. We need to map local t value to state.lineWidth
+  const lowerPointThickIndex = // correcting index because:
+    state.widthPoints[nearestPointIndex].progress >= progress // we need closest BUT also smaller than progress
+      ? Math.max(nearestPointIndex - 1, 0) // take previous item but make sure it's not under index -1
+      : nearestPointIndex;
+
+  const lowerPointThick = state.widthPoints[lowerPointThickIndex];
+  const upperPointThick = state.widthPoints[lowerPointThickIndex + 1];
+
   const diff =
     (progress - lowerPointThick.progress) /
     (upperPointThick.progress - lowerPointThick.progress);

@@ -42,7 +42,7 @@ export default function createToolbar(state: State) {
 
   const brushBtn = document.createElement("button");
   brushBtn.innerHTML = brushSvg;
-  brushBtn.addEventListener("click", state.setBrushMode);
+  brushBtn.addEventListener("click", state.toggleBrushMode);
 
   const slider = document.createElement("input");
   slider.setAttribute("min", "0");

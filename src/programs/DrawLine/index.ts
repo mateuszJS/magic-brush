@@ -47,34 +47,40 @@ export default class DrawLine {
     p1: Point,
     p2: Point,
     startColor: vec4,
-    endColor = startColor
+    endColor = startColor,
+    width = 3, // it's actually half of line width
+    additionalLength = 0
   ) {
     const gl = window.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
-    // [-y, x], [y, -x]
+
     const directionTan = normalizeVec2({
       x: p2.x - p1.x,
       y: p2.y - p1.y,
     });
 
-    const distance = 3;
+    // [-y, x], [y, -x]
     const offset = [
-      -directionTan.y * distance, // x
-      directionTan.x * distance, // y
-      directionTan.y * distance, // x
-      -directionTan.x * distance, // y
+      -directionTan.y * width, // x
+      directionTan.x * width, // y
+      directionTan.y * width, // x
+      -directionTan.x * width, // y
     ];
+
+    const lengthModX = directionTan.x * additionalLength;
+    const lengthModY = directionTan.y * additionalLength;
+
     const points = [
-      p1.x + offset[0],
-      p1.y + offset[1],
-      p1.x + offset[2],
-      p1.y + offset[3],
+      p1.x + offset[0] - lengthModX,
+      p1.y + offset[1] - lengthModY,
+      p1.x + offset[2] - lengthModX,
+      p1.y + offset[3] - lengthModY,
       //
-      p2.x + offset[0],
-      p2.y + offset[1],
-      p2.x + offset[2],
-      p2.y + offset[3],
+      p2.x + offset[0] + lengthModX,
+      p2.y + offset[1] + lengthModY,
+      p2.x + offset[2] + lengthModX,
+      p2.y + offset[3] + lengthModY,
     ];
     this.setPoints(new Float32Array(points));
     this.setColors(
