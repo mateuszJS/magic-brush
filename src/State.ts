@@ -91,7 +91,6 @@ export default class State {
   ) {
     const distance = this.getWidthDistance(segmentProgress, pointer);
     this.widthPoints[index].offset = distance;
-
     this.refresh();
   }
 

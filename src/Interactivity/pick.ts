@@ -23,6 +23,10 @@ export default function pick(
 
   const gl = window.gl;
   const texture = new Texture();
+  gl.disable(gl.BLEND); // on iOS EXT_float_blend wasn't present
+  // because of that, all rendering with alpha to floating point texture was omitted
+  // we could also change texture internal format(RGBA32F) but seems like there is no RGB32F
+  // table with extensions https://webgl2fundamentals.org/webgl/lessons/webgl-data-textures.html
 
   texture.fill({
     isFloat: true,
@@ -39,12 +43,15 @@ export default function pick(
     -pointer.y
   );
 
-  // draw complicated items with the usage of other classes, like bezier curves
+  // draw items with the usage of other classes, like bezier curves
   drawCalls.forEach((drawCall) => drawCall(translatedMatrix));
 
   const data = new Float32Array(4);
   const fboFormat = gl.RGBA;
   const type = gl.FLOAT;
   gl.readPixels(0, 0, BUFFER_SIZE, BUFFER_SIZE, fboFormat, type, data);
+
+  gl.enable(gl.BLEND);
+
   return data;
 }

@@ -52,8 +52,6 @@ export default class Interactivity {
   };
 
   public onPointerMove = (pointer: Point) => {
-    // const  { stateRef } = this
-
     if (this.activeWidthPoint) {
       // we are in edit width for particular point mode
       this.stateRef.updateWidthPoint(

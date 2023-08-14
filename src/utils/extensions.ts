@@ -8,6 +8,7 @@ interface WebGlExtensions {
   formatRG: Extension;
   formatR: Extension;
   supportLinearFiltering: OES_texture_float_linear | null;
+  renderableFloatPointTex: EXT_color_buffer_float | null;
 }
 
 function getSupportedFormat(
@@ -66,13 +67,14 @@ const glExt: WebGlExtensions = {
   formatRG: { internalFormat: 0, format: 0 },
   formatR: { internalFormat: 0, format: 0 },
   supportLinearFiltering: null,
+  renderableFloatPointTex: null,
 };
 
 export default glExt;
 
 export function updateExtensions(gl: WebGL2RenderingContext) {
   // https://webglfundamentals.org/webgl/lessons/webgl-3d-textures.html
-  gl.getExtension("EXT_color_buffer_float"); // you can render variety of floating point formats
+  glExt.renderableFloatPointTex = gl.getExtension("EXT_color_buffer_float"); // you can render variety of floating point formats
   glExt.supportLinearFiltering = gl.getExtension("OES_texture_float_linear");
   // // if there is no extension, then webgl supports only NEAREST for TEXTURE_MIN_FILTER and TEXTURE_MAX_FILTER
 

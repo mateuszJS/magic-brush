@@ -1,7 +1,7 @@
 import { isMobile } from "consts";
 
 function getCoordsFromTouch(event: TouchEvent): Point {
-  const touch = event.touches[0];
+  const touch = event.touches[0] || event;
   // we assume that canvas is places in very top left corner, no offset
   return { x: touch.pageX, y: touch.pageY };
 }
