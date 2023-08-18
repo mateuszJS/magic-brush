@@ -93,7 +93,7 @@ export default class DrawBezier {
 
     const thickness = t.map((_t) => _t);
     // const thickness = t.map((_t) => Math.max(1, 1 - Math.abs(_t - 0.5) * 2));
-    console.log("thickness", t, thickness);
+
     const updateThickness = setAttribute(
       attrs.aThick,
       1,

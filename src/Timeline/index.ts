@@ -82,15 +82,20 @@ export default class Timeline {
 
     if (minisEnd < skeletonSize.timeline.width) {
       gl.enable(gl.SCISSOR_TEST);
+      const retinaX = gl.drawingBufferWidth / window.gl.canvas.clientWidth;
+      const retinaY = gl.drawingBufferHeight / window.gl.canvas.clientHeight;
+
+      const y =
+        gl.canvas.clientHeight -
+        skeletonSize.timeline.y -
+        skeletonSize.timeline.height;
       gl.scissor(
-        minisEnd,
-        gl.drawingBufferHeight -
-          skeletonSize.timeline.y -
-          skeletonSize.timeline.height,
-        MINI_SIZE,
-        MINI_SIZE
+        minisEnd * retinaX,
+        y * retinaX, // y is counted from bottom of the screen
+        MINI_SIZE * retinaX,
+        MINI_SIZE * retinaY
       );
-      gl.clearColor(0, 0, 0, 1.0);
+      gl.clearColor(1, 0, 0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.disable(gl.SCISSOR_TEST);
     }

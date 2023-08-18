@@ -22,6 +22,7 @@ export default class Interactivity {
   private lastWidthsFootprint: string;
   private widthIndicators: Line[];
   private previewWidthProgress: number | null;
+  private nextRAFid: number; // stores id of last requested requestAnimationFrame, if !== 0 we know last frame wasn't performed yet
 
   constructor(private stateRef: State, private drawCalls: DrawCall[]) {
     this.circleThicknessVao = drawCircle.createVAO(THICKNESS_SIZE_CONTROLS);
@@ -30,16 +31,14 @@ export default class Interactivity {
     this.previewWidthProgress = null;
     this.lastWidthsFootprint = "";
     this.widthIndicators = [];
+    this.nextRAFid = 0;
 
     attachListeners(this.onPointerDown, this.onPointerMove, this.onPointerUp);
   }
 
   public onPointerDown = (pointer: Point) => {
     this.pointerIsDown = true;
-
-    requestAnimationFrame(() => {
-      this.getHover(pointer);
-    });
+    this.requestHoverUpdate(pointer);
   };
 
   public onPointerUp = (pointer: Point) => {
@@ -51,6 +50,23 @@ export default class Interactivity {
     this.stateRef.refresh();
   };
 
+  private requestHoverUpdate(pointer: Point) {
+    if (this.nextRAFid !== 0) {
+      // previously requested one can be skipped, we got a new one to request
+      cancelAnimationFrame(this.nextRAFid);
+      /* otherwise sometimes flow looks like:
+      1. mouse moves
+      2. mouse moves again
+      3. Call raf twice, so both of then will avoid above if, even if first raf sets this.activeWidthPoint toa  positive value
+      */
+    }
+
+    this.nextRAFid = requestAnimationFrame(() => {
+      this.nextRAFid = 0;
+      this.getHover(pointer);
+    });
+  }
+
   public onPointerMove = (pointer: Point) => {
     if (this.activeWidthPoint) {
       // we are in edit width for particular point mode
@@ -59,13 +75,11 @@ export default class Interactivity {
         this.activeWidthPoint.progress,
         pointer
       );
-      // we should avoid calling getHover as much as it's possible
+      // optimization to avoid additional request animation frame
       return;
     }
 
-    requestAnimationFrame(() => {
-      this.getHover(pointer);
-    });
+    this.requestHoverUpdate(pointer);
   };
 
   private getIndicator(segmentProgress: number): Line {

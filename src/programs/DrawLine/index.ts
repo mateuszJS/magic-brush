@@ -6,6 +6,7 @@ import { createProgram } from "programs/utils/createProgram";
 import { getUniform } from "programs/utils/getUniform";
 import linkProgram from "programs/utils/linkProgram";
 import normalizeVec2 from "utils/normalizeVec2";
+import getNormDirection from "utils/getNormDirection";
 
 const attrs = {
   pos: 0,
@@ -55,10 +56,7 @@ export default class DrawLine {
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.matrixUniform, false, matrix);
 
-    const directionTan = normalizeVec2({
-      x: p2.x - p1.x,
-      y: p2.y - p1.y,
-    });
+    const directionTan = getNormDirection(p1, p2);
 
     // [-y, x], [y, -x]
     const offset = [

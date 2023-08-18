@@ -98,7 +98,6 @@ export default class Effects {
     if (state.simplePath.length < 2) return;
 
     setupRenderTarget(null);
-
     this.draw(state, canvasMatrix, false);
   }
 }

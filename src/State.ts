@@ -6,7 +6,9 @@ import douglasPeucker from "utils/douglasPeucker";
 import computeControlPoints from "utils/computeControlPoints";
 import getBezierPos from "utils/getBezierPos";
 import getBezierTan from "utils/getBezierTan";
-import distanceFromPointToLine from "utils/distanceFromPointToLine";
+import distancePointToLine from "utils/distancePointToLine";
+import getDistance from "utils/getDistance";
+import getNormDirection from "utils/getNormDirection";
 
 export interface WidthPoint {
   progress: number;
@@ -18,6 +20,7 @@ export const DEFAULT_OFFSET = 80;
 export default class State {
   private detailedPath: Point[]; // this is exactly path from user input
   private inProgressPoints: Point[];
+  private previewNextPoint: Point | null;
   public brushMode: boolean;
   public simplePath: Point[];
   public currTime: number;
@@ -38,6 +41,7 @@ export default class State {
       { progress: 0, offset: DEFAULT_OFFSET },
       { progress: 1, offset: DEFAULT_OFFSET },
     ];
+    this.previewNextPoint = null;
 
     const onLoadVideo = (video: MiniatureVideo) => {
       onVideoLoaded(this);
@@ -128,18 +132,34 @@ export default class State {
       return;
     }
 
+    const firstProgressPoint = inProgressPoints[0];
     const lastDetailPoint = detailedPath[detailedPath.length - 1];
-    const distanceFromLastDetailPoint = Math.hypot(
-      lastDetailPoint.x - pointer.x,
-      lastDetailPoint.y - pointer.y
-    );
+    // TODO: maybe we can change it from an array to just two Point, since we need only last and first
+    const distanceFromLastDetailPoint = getDistance(lastDetailPoint, pointer);
 
-    if (last && distanceFromLastDetailPoint < 10) {
+    if (last) {
+      this.previewNextPoint = null;
+      this.updateControlPoints();
+    } else if (distanceFromLastDetailPoint > 0) {
+      this.previewNextPoint = pointer;
+      this.updateControlPoints();
+    }
+
+    if (last && distanceFromLastDetailPoint > 5) {
       // just to do not overlap
       // this is last added point, because mouse is up now
-      //TODO: check diveation, if it;s still witihng range them maybe jsut overrie last point
-      // if it's out of track, add that new point
-      detailedPath.push(pointer);
+
+      const deviationFromTheDirection = firstProgressPoint
+        ? distancePointToLine(pointer, lastDetailPoint, firstProgressPoint)
+        : 0;
+
+      if (deviationFromTheDirection < 5) {
+        // 99.99% times goes this way
+        detailedPath[detailedPath.length - 1] = pointer;
+        // the result should be same, and we won't get tow point almost overlapping(what created weird ending in the brush)
+      } else {
+        detailedPath.push(pointer);
+      }
       this.updateControlPoints();
       return;
     }
@@ -152,12 +172,9 @@ export default class State {
       return;
     }
 
-    const firstProgressPoint = inProgressPoints[0];
-    // TODO: maybe we can change it since we need only last and first
-
-    const distanceFromFirstProgressPoint = Math.hypot(
-      firstProgressPoint.x - pointer.x,
-      firstProgressPoint.y - pointer.y
+    const distanceFromFirstProgressPoint = getDistance(
+      firstProgressPoint,
+      pointer
     );
 
     if (distanceFromFirstProgressPoint < 5) {
@@ -166,8 +183,7 @@ export default class State {
       return;
     }
 
-    const deviationFromTheDirection = distanceFromPointToLine(
-      // for sure change the name!
+    const deviationFromTheDirection = distancePointToLine(
       pointer,
       lastDetailPoint,
       firstProgressPoint
@@ -176,8 +192,6 @@ export default class State {
     // we should write the last oen that was OKAY, and then continue inProgress with new point
 
     if (deviationFromTheDirection > 5) {
-      // TODO: maybe we should icnrease it
-
       // newest point has a different direction
       const lastProgressPoint = inProgressPoints[inProgressPoints.length - 1]; // last one that was correct, since current "pointer" is not in same direction
       detailedPath.push(lastProgressPoint);
@@ -192,17 +206,14 @@ export default class State {
     }
 
     this.updateControlPoints();
-    this.refresh();
   }
 
   private updateControlPoints() {
     const fullPointsList = [...this.detailedPath];
-    const lastDrawPoint =
-      this.inProgressPoints[this.inProgressPoints.length - 1];
 
-    if (lastDrawPoint) {
-      fullPointsList.push(lastDrawPoint);
-    }
+    // if (this.previewNextPoint) {
+    //   fullPointsList.push(this.previewNextPoint);
+    // }
 
     const knots = douglasPeucker(fullPointsList, this.simplificationFactor);
 
@@ -215,6 +226,28 @@ export default class State {
       this.simplePath.push(controlPoints[n + i]);
       this.simplePath.push(knots[i + 1]);
     }
+
+    // if (this.previewNextPoint) {
+    //   const diff = {
+    //     x: this.previewNextPoint.x - knots[n].x,
+    //     y: this.previewNextPoint.y - knots[n].y,
+    //   };
+    //   const controlPoint1 = {
+    //     x: this.previewNextPoint.x - diff.x * 0.1,
+    //     y: this.previewNextPoint.y - diff.y * 0.1,
+    //   };
+    //   const lastControlPoint = this.simplePath[this.simplePath.length - 2];
+    //   const direction = getNormDirection(lastControlPoint, knots[n]);
+    //   const distance = getDistance(this.previewNextPoint, knots[n]);
+    //   const controlPoint2 = {
+    //     x: knots[n].x + direction.x * Math.min(50, distance * 0.8),
+    //     y: knots[n].y + direction.y * Math.min(50, distance * 0.8),
+    //   };
+
+    //   this.simplePath.push(controlPoint2);
+    //   this.simplePath.push(controlPoint1);
+    //   this.simplePath.push(this.previewNextPoint);
+    // }
 
     this.refresh();
   }
