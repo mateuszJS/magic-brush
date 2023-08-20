@@ -1,6 +1,7 @@
+import { dpr } from "consts";
+
 export default function resizeCanvas() {
   const canvas = window.gl.canvas;
-  const dpr = window.devicePixelRatio;
   const displayWidth = Math.round(canvas.clientWidth * dpr);
   const displayHeight = Math.round(canvas.clientHeight * dpr);
   // Check if the canvas is not the same size.
