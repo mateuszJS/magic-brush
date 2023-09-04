@@ -1,9 +1,8 @@
-import { drawCircle, drawLine, drawPoints, simpleDrawBezier } from "programs";
+import { drawCircle, drawLine, simpleDrawBezier } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 import { canvasMatrix } from "programs/canvasMatrix";
 import State from "State";
 import SimpleDrawBezier from "programs/SimpleDrawBezier";
-import computeControlPoints from "utils/computeControlPoints";
 import DrawCircle from "programs/DrawCircle";
 
 const ITER = 10;

@@ -2,13 +2,11 @@ import MiniatureVideo from "models/Video/MiniatureVideo";
 import { updateToolbar } from "UI/createToolbar";
 import { MS_PER_PIXEL } from "consts";
 import { updateTimelineScroll, updateTimelineWidth } from "UI";
-import douglasPeucker from "utils/douglasPeucker";
-import computeControlPoints from "utils/computeControlPoints";
 import getBezierPos from "utils/getBezierPos";
 import getBezierTan from "utils/getBezierTan";
 import distancePointToLine from "utils/distancePointToLine";
 import getDistance from "utils/getDistance";
-import getNormDirection from "utils/getNormDirection";
+import fitCurve from "./utils/fitCurve";
 
 export interface WidthPoint {
   progress: number;
@@ -164,7 +162,7 @@ export default class State {
       return;
     }
 
-    if (distanceFromLastDetailPoint < 50) return;
+    if (distanceFromLastDetailPoint < 10) return;
 
     if (inProgressPoints.length === 0) {
       inProgressPoints.push(pointer);
@@ -209,46 +207,19 @@ export default class State {
   }
 
   private updateControlPoints() {
-    const fullPointsList = [...this.detailedPath];
-
     // if (this.previewNextPoint) {
     //   fullPointsList.push(this.previewNextPoint);
     // }
+    const pointsAsArray = this.detailedPath.map((p) => [p.x, p.y]);
+    const fitted = fitCurve(pointsAsArray, this.simplificationFactor, () => {});
+    if (fitted.length === 0) return;
+    const withoutDuplicates = fitted.flatMap((bezierCurve, index) =>
+      bezierCurve.slice(0, 3)
+    );
 
-    const knots = douglasPeucker(fullPointsList, this.simplificationFactor);
+    withoutDuplicates.push(fitted[fitted.length - 1][3]);
 
-    const n = knots.length - 1;
-    const controlPoints = computeControlPoints(n, knots);
-
-    this.simplePath = [knots[0]];
-    for (let i = 0; i < n; i++) {
-      this.simplePath.push(controlPoints[i]);
-      this.simplePath.push(controlPoints[n + i]);
-      this.simplePath.push(knots[i + 1]);
-    }
-
-    // if (this.previewNextPoint) {
-    //   const diff = {
-    //     x: this.previewNextPoint.x - knots[n].x,
-    //     y: this.previewNextPoint.y - knots[n].y,
-    //   };
-    //   const controlPoint1 = {
-    //     x: this.previewNextPoint.x - diff.x * 0.1,
-    //     y: this.previewNextPoint.y - diff.y * 0.1,
-    //   };
-    //   const lastControlPoint = this.simplePath[this.simplePath.length - 2];
-    //   const direction = getNormDirection(lastControlPoint, knots[n]);
-    //   const distance = getDistance(this.previewNextPoint, knots[n]);
-    //   const controlPoint2 = {
-    //     x: knots[n].x + direction.x * Math.min(50, distance * 0.8),
-    //     y: knots[n].y + direction.y * Math.min(50, distance * 0.8),
-    //   };
-
-    //   this.simplePath.push(controlPoint2);
-    //   this.simplePath.push(controlPoint1);
-    //   this.simplePath.push(this.previewNextPoint);
-    // }
-
+    this.simplePath = withoutDuplicates.map<Point>(([x, y]) => ({ x, y }));
     this.refresh();
   }
 

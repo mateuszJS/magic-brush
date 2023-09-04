@@ -1,6 +1,10 @@
 import State from "State";
 import getNearestIndex from "./getNearestIndex";
 
+function easeInOutQuad(x: number): number {
+  return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+}
+
 /* globalT - between <0, state.simplePath.length / 3> */
 export default function getPathWidth(segmentProgress: number, state: State) {
   const totalSegmentProgress = state.simplePath.length / 3; // 3 because one segment contains 4 in total, by dividing by 3 we got number of segment(two nodes and tow control points)
@@ -22,8 +26,10 @@ export default function getPathWidth(segmentProgress: number, state: State) {
   const diff =
     (progress - lowerPointThick.progress) /
     (upperPointThick.progress - lowerPointThick.progress);
+
+  const easyDiff = easeInOutQuad(diff);
   const offsetAvg =
-    (1 - diff) * lowerPointThick.offset + diff * upperPointThick.offset;
+    (1 - easyDiff) * lowerPointThick.offset + easyDiff * upperPointThick.offset;
 
   return offsetAvg;
 }

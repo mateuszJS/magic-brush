@@ -38,7 +38,13 @@ export default class Interactivity {
 
   public onPointerDown = (pointer: Point) => {
     this.pointerIsDown = true;
-    this.requestHoverUpdate(pointer);
+    if (this.stateRef.brushMode) {
+      if (this.pointerIsDown) {
+        this.stateRef.addControlPoint(pointer);
+      }
+    } else {
+      this.requestHoverUpdate(pointer);
+    }
   };
 
   public onPointerUp = (pointer: Point) => {
@@ -79,7 +85,13 @@ export default class Interactivity {
       return;
     }
 
-    this.requestHoverUpdate(pointer);
+    if (this.stateRef.brushMode) {
+      if (this.pointerIsDown) {
+        this.stateRef.addControlPoint(pointer);
+      }
+    } else {
+      this.requestHoverUpdate(pointer);
+    }
   };
 
   private getIndicator(segmentProgress: number): Line {
@@ -132,7 +144,7 @@ export default class Interactivity {
         }
 
         if (this.pointerIsDown && this.stateRef.brushMode) {
-          this.stateRef.addControlPoint(pointer);
+          this.stateRef.addControlPoint(pointer); // it should be never the case!!! You cannot hover and at same time add control point!
         }
         break;
       }
