@@ -7,6 +7,7 @@ import getBezierTan from "utils/getBezierTan";
 import distancePointToLine from "utils/distancePointToLine";
 import getDistance from "utils/getDistance";
 import fitCurve from "./utils/fitCurve";
+import getCurveLength from "utils/getCurveLength";
 
 export interface WidthPoint {
   progress: number;
@@ -14,13 +15,20 @@ export interface WidthPoint {
 }
 
 export const DEFAULT_OFFSET = 80;
+const TEX_COORD_PRECISION = 10;
+
+export interface Segment {
+  controlPoints: [Point, Point, Point, Point]; // knot, control point, control point, knot
+  // all of the them be called control points, knot is a special type because curve go though that point
+  lengths: number[]; // progressive lengths
+}
 
 export default class State {
-  private detailedPath: Point[]; // this is exactly path from user input
+  private inputPoints: Point[]; // this is exactly path from user input
   private inProgressPoints: Point[];
   private previewNextPoint: Point | null;
   public brushMode: boolean;
-  public simplePath: Point[];
+  public segments: Segment[];
   public currTime: number;
   public needsRefresh: boolean; // indicates if we should make an update or not
   public video: MiniatureVideo;
@@ -31,9 +39,9 @@ export default class State {
     this.currTime = 0;
     this.needsRefresh = true;
     this.brushMode = false;
-    this.detailedPath = [];
+    this.inputPoints = [];
     this.inProgressPoints = [];
-    this.simplePath = [];
+    this.segments = [];
     this.simplificationFactor = 0.1;
     this.widthPoints = [
       { progress: 0, offset: DEFAULT_OFFSET },
@@ -70,8 +78,7 @@ export default class State {
   public addWidthPoint(segmentProgress: number, pointer: Point): number {
     // returns index of newly created widthPoint
     const distance = this.getWidthDistance(segmentProgress, pointer);
-    const segmentsTotalProgress = this.simplePath.length / 3;
-    const pathProgress = segmentProgress / segmentsTotalProgress;
+    const pathProgress = segmentProgress / this.segments.length;
 
     const newWidthPoint = {
       progress: pathProgress,
@@ -96,42 +103,39 @@ export default class State {
     this.refresh();
   }
 
-  public getPosAndTan(segmentProgress: number) {
-    const firstKnotIndex = Math.floor(segmentProgress) * 3;
-    const maxKnotIndex = this.simplePath.length - 4;
-    const [safeFirstKnotIndex, t] =
-      firstKnotIndex > maxKnotIndex
-        ? [maxKnotIndex, 1]
-        : [firstKnotIndex, segmentProgress % 1];
-    const p1 = this.simplePath[safeFirstKnotIndex + 0];
-    const p2 = this.simplePath[safeFirstKnotIndex + 1];
-    const p3 = this.simplePath[safeFirstKnotIndex + 2];
-    const p4 = this.simplePath[safeFirstKnotIndex + 3];
-    const pointOnCurve = getBezierPos(p1, p2, p3, p4, t);
-    const curveTan = getBezierTan(p1, p2, p3, p4, t);
+  public getPosAndTan(progress: number) {
+    // progress measured in segments
+    const segmentIndex = Math.floor(progress);
+    const [safeSegmentIndex, t] =
+      segmentIndex === this.segments.length // progress at the very end of the path is equal this.segments.length
+        ? [this.segments.length - 1, 1]
+        : [segmentIndex, progress % 1];
+    const { controlPoints } = this.segments[safeSegmentIndex];
+    const pointOnCurve = getBezierPos(...controlPoints, t);
+    const curveTan = getBezierTan(...controlPoints, t);
 
     return [pointOnCurve, curveTan];
   }
 
   public addControlPoint(pointer: Point, last = false) {
-    const { detailedPath, inProgressPoints } = this;
+    const { inputPoints, inProgressPoints } = this;
     /*
     inProgressPoints array si used to store all the points which are in same direction.
-    Direction is calc between last detailedPath point and first inProgressPoint.
+    Direction is calc between last inputPoints point and first inProgressPoint.
     Once pointer is not on that line(not within direction), we add last correct point (last time of inProgressPoint)
-    to detailedPath, and we add pointer to inProgressPoint since now we draw in a different direction
+    to inputPoints, and we add pointer to inProgressPoint since now we draw in a different direction
     */
 
     // TODO: we should reset inProgressPoints
 
-    if (detailedPath.length === 0) {
-      detailedPath.push(pointer);
+    if (inputPoints.length === 0) {
+      inputPoints.push(pointer);
       this.updateControlPoints();
       return;
     }
 
     const firstProgressPoint = inProgressPoints[0];
-    const lastDetailPoint = detailedPath[detailedPath.length - 1];
+    const lastDetailPoint = inputPoints[inputPoints.length - 1];
     // TODO: maybe we can change it from an array to just two Point, since we need only last and first
     const distanceFromLastDetailPoint = getDistance(lastDetailPoint, pointer);
 
@@ -153,10 +157,10 @@ export default class State {
 
       if (deviationFromTheDirection < 5) {
         // 99.99% times goes this way
-        detailedPath[detailedPath.length - 1] = pointer;
+        inputPoints[inputPoints.length - 1] = pointer;
         // the result should be same, and we won't get tow point almost overlapping(what created weird ending in the brush)
       } else {
-        detailedPath.push(pointer);
+        inputPoints.push(pointer);
       }
       this.updateControlPoints();
       return;
@@ -192,15 +196,13 @@ export default class State {
     if (deviationFromTheDirection > 5) {
       // newest point has a different direction
       const lastProgressPoint = inProgressPoints[inProgressPoints.length - 1]; // last one that was correct, since current "pointer" is not in same direction
-      detailedPath.push(lastProgressPoint);
+      inputPoints.push(lastProgressPoint);
       // at this time we for sure have the start and the end of the path, I bet that's why we use empty array
       this.inProgressPoints = []; // pointer should be 50px far from
       // this.inProgressPoints = [{ x, y }];
     } else {
       // new point is at the same direction
       inProgressPoints.push(pointer);
-
-      // TODO: When mouse is up, probably we should add last point to detailed path
     }
 
     this.updateControlPoints();
@@ -210,16 +212,23 @@ export default class State {
     // if (this.previewNextPoint) {
     //   fullPointsList.push(this.previewNextPoint);
     // }
-    const pointsAsArray = this.detailedPath.map((p) => [p.x, p.y]);
+    const pointsAsArray = this.inputPoints.map((p) => [p.x, p.y]);
     const fitted = fitCurve(pointsAsArray, this.simplificationFactor, () => {});
     if (fitted.length === 0) return;
-    const withoutDuplicates = fitted.flatMap((bezierCurve, index) =>
-      bezierCurve.slice(0, 3)
-    );
 
-    withoutDuplicates.push(fitted[fitted.length - 1][3]);
+    this.segments = fitted.map<Segment>((bezierCurve) => {
+      const controlPoints = bezierCurve.map(([x, y]) => ({
+        x,
+        y,
+      })) as Segment["controlPoints"];
+      const lengths = getCurveLength(...controlPoints, TEX_COORD_PRECISION);
 
-    this.simplePath = withoutDuplicates.map<Point>(([x, y]) => ({ x, y }));
+      return {
+        controlPoints,
+        lengths,
+      };
+    });
+
     this.refresh();
   }
 

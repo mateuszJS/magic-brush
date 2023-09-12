@@ -10,8 +10,10 @@ import getPathWidth from "utils/getPathWidth";
 
 const THICKNESS_SIZE_CONTROLS = 10;
 
+const NO_SELECTION = [0, 0, 0, 0];
+
 function getWidthsFootprintFromState(state: State) {
-  return `${state.simplificationFactor} ${state.simplePath.length}`;
+  return `${state.simplificationFactor} ${state.segments.length}`;
 }
 
 export default class Interactivity {
@@ -124,9 +126,11 @@ export default class Interactivity {
           this.drawPickIndicator(matrix, indicator, index)
       ),
     ];
-    const [red, green, blue] = Array.from(
-      pick(this.stateRef.simplePath, pointer, drawCalls)
-    );
+
+    const [red, green, blue] =
+      this.stateRef.segments.length === 0
+        ? NO_SELECTION
+        : Array.from(pick(pointer, drawCalls));
 
     const type = Math.round(blue);
 
@@ -172,7 +176,7 @@ export default class Interactivity {
         const index = Math.round(red);
         const widthPoint = this.stateRef.widthPoints[index];
         const segmentProgress =
-          widthPoint.progress * (this.stateRef.simplePath.length / 3);
+          widthPoint.progress * this.stateRef.segments.length;
 
         if (this.pointerIsDown) {
           this.activeWidthPoint = {
@@ -230,14 +234,14 @@ export default class Interactivity {
     const currWidthFootprint = getWidthsFootprintFromState(stateRef);
 
     if (
-      stateRef.simplePath.length >= 2 &&
+      stateRef.segments.length > 0 &&
       (this.activeWidthPoint !== null ||
         this.lastWidthsFootprint !== currWidthFootprint)
     ) {
       // widths needs to be calculated again
       this.lastWidthsFootprint = currWidthFootprint;
       this.widthIndicators = state.widthPoints.map((widthPoint) =>
-        this.getIndicator(widthPoint.progress * (state.simplePath.length / 3))
+        this.getIndicator(widthPoint.progress * state.segments.length)
       );
     }
 
@@ -249,22 +253,5 @@ export default class Interactivity {
       const activeIndicator = this.getIndicator(this.previewWidthProgress);
       this.drawIndicator(activeIndicator, true);
     }
-
-    //   state.controls.forEach((control) => {
-    //     switch (control.type) {
-    //       case ControlType.thickness: {
-    //         this.drawThickness(state);
-    //         return;
-    //       }
-
-    //       default: {
-    //         this.vao.setPos(new Float32Array([control.x, control.y]));
-    //         this.vao.setColor(new Float32Array([1, 1, 1, 1]));
-    //         drawCircle.setup(this.vao, canvasMatrix);
-    //         gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, 1);
-    //         gl.bindVertexArray(null);
-    //       }
-    //     }
-    //   });
   }
 }

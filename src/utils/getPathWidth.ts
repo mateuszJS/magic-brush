@@ -5,18 +5,17 @@ function easeInOutQuad(x: number): number {
   return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 }
 
-/* globalT - between <0, state.simplePath.length / 3> */
-export default function getPathWidth(segmentProgress: number, state: State) {
-  const totalSegmentProgress = state.simplePath.length / 3; // 3 because one segment contains 4 in total, by dividing by 3 we got number of segment(two nodes and tow control points)
-  const progress = segmentProgress / totalSegmentProgress;
+export default function getPathWidth(progress: number, state: State) {
+  // progress measured in segments
+  const splineProgress = progress / state.segments.length;
 
   const nearestPointIndex = getNearestIndex(
-    progress,
+    splineProgress,
     state.widthPoints,
     "progress"
   );
   const lowerPointThickIndex = // correcting index because:
-    state.widthPoints[nearestPointIndex].progress >= progress // we need closest BUT also smaller than progress
+    state.widthPoints[nearestPointIndex].progress >= splineProgress // we need closest BUT also smaller than progress
       ? Math.max(nearestPointIndex - 1, 0) // take previous item but make sure it's not under index -1
       : nearestPointIndex;
 
@@ -24,7 +23,7 @@ export default function getPathWidth(segmentProgress: number, state: State) {
   const upperPointThick = state.widthPoints[lowerPointThickIndex + 1];
 
   const diff =
-    (progress - lowerPointThick.progress) /
+    (splineProgress - lowerPointThick.progress) /
     (upperPointThick.progress - lowerPointThick.progress);
 
   const easyDiff = easeInOutQuad(diff);
