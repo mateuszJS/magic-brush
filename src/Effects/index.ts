@@ -5,12 +5,8 @@ import DrawBezier from "programs/DrawBezier";
 import brushPng from "assets/wave.png";
 import Texture from "models/Texture";
 import State, { DEFAULT_OFFSET } from "State";
-import getCurveLength from "utils/getCurveLength";
 import getPathWidth from "utils/getPathWidth";
-import getAngleDiff from "utils/getAngleDiff";
-import getNormDirection from "utils/getNormDirection";
-import getAngle from "utils/getAngle";
-import getNearestIndex from "utils/getNearestIndex";
+import getTrianglesNumber from "./getTrianglesNumber";
 
 // const ITER = 22;
 
@@ -108,29 +104,24 @@ export default class Effects {
         return prevTexCoordYoffset + distanceAvg / thickness + offset;
       };
 
-      const p1p2Angle = getAngle(controlPoints[0], controlPoints[1]);
-      const p3p4Angle = getAngle(controlPoints[2], controlPoints[3]);
-      const angleDiff = getAngleDiff(p1p2Angle, p3p4Angle); // 0 - 0.46
-      // also it's important how close are two width point to each other! Closer means we nee more triangles!
-      // We should find the most extreme two width points within the segment
-      const segmentLength = lengths[lengths.length - 1];
-      const lengthFactor = Math.ceil(segmentLength / 400);
-      const dirtyHalfIter = 4 + Math.round(angleDiff * 17 * lengthFactor); // at least half >= 4
-      // const dirtyHalfIter =
-      //   4 + Math.round(angleDiff * 10 + getWidthFactor(state, i)); // at least half >= 4
-      const halfIter = dirtyHalfIter + ((dirtyHalfIter + 1) % 2); // must be odd
-      const iter = halfIter * 2; // must be even
-
-      // const iter = 14;
-      const vao = this.getVao(iter);
-      vao.updateTexCoordY(getTexCoord);
-
       const getThickness = (t: number) => {
         const globalT = index + t; // state.widthPoints are divided per segments
         if (state.widthPoints.length === 0) return DEFAULT_OFFSET;
 
         return getPathWidth(globalT, state);
       };
+
+      const widthPoints = [
+        { offset: getThickness(0), progress: 0 },
+        ...state.widthPoints.filter(
+          (p) => p.progress < index + 1 && p.progress > index
+        ),
+        { offset: getThickness(1), progress: 1 },
+      ];
+
+      const trianglesNumber = getTrianglesNumber(segment, widthPoints);
+      const vao = this.getVao(trianglesNumber);
+      vao.updateTexCoordY(getTexCoord);
 
       vao.updateThickness(getThickness);
 
@@ -141,7 +132,7 @@ export default class Effects {
         this.tex.bind(0),
         isPick ? index : 0
       );
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, iter);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, trianglesNumber);
       prevTexCoordYoffset = getTexCoord(1);
     });
     gl.bindVertexArray(null);
