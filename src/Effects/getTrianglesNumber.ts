@@ -23,7 +23,7 @@ export default function getTrianglesNumber(
     if (index === 0) return acc;
 
     // we don't care about progress diff for now! It requires absolute distance between points!
-    const triangles = Math.abs(p.offset - widthPoints[index - 1].offset) / 10;
+    const triangles = Math.abs(p.offset - widthPoints[index - 1].offset) / 3;
     return Math.max(acc, triangles);
   }, 0);
 
