@@ -16,6 +16,7 @@ export interface WidthPoint {
 
 export const DEFAULT_OFFSET = 80;
 const TEX_COORD_PRECISION = 10;
+const SIMPLIFICATION_FACTOR = 400;
 
 export interface Segment {
   controlPoints: [Point, Point, Point, Point]; // knot, control point, control point, knot
@@ -25,29 +26,27 @@ export interface Segment {
 
 export default class State {
   private inputPoints: Point[]; // this is exactly path from user input
-  private inProgressPoints: Point[];
-  private previewNextPoint: Point | null;
   public brushMode: boolean;
   public segments: Segment[];
   public currTime: number;
   public needsRefresh: boolean; // indicates if we should make an update or not
   public video: MiniatureVideo;
   public widthPoints: WidthPoint[];
-  public simplificationFactor: number;
+  private draftPoint: Point | null;
+  private withinDirection: null | ((p: Point) => boolean);
 
   constructor(videoUrl: string, onVideoLoaded: (state: State) => void) {
     this.currTime = 0;
     this.needsRefresh = true;
     this.brushMode = false;
     this.inputPoints = [];
-    this.inProgressPoints = [];
     this.segments = [];
-    this.simplificationFactor = 0.1;
     this.widthPoints = [
       { progress: 0, offset: DEFAULT_OFFSET },
       { progress: 1, offset: DEFAULT_OFFSET },
     ];
-    this.previewNextPoint = null;
+    this.draftPoint = null; // maybe it can be connected with preview point?
+    this.withinDirection = null;
 
     const onLoadVideo = (video: MiniatureVideo) => {
       onVideoLoaded(this);
@@ -118,102 +117,45 @@ export default class State {
   }
 
   public addControlPoint(pointer: Point, last = false) {
-    const { inputPoints, inProgressPoints } = this;
-    /*
-    inProgressPoints array si used to store all the points which are in same direction.
-    Direction is calc between last inputPoints point and first inProgressPoint.
-    Once pointer is not on that line(not within direction), we add last correct point (last time of inProgressPoint)
-    to inputPoints, and we add pointer to inProgressPoint since now we draw in a different direction
-    */
+    const { inputPoints, draftPoint, withinDirection } = this;
 
-    // TODO: we should reset inProgressPoints
-
-    if (inputPoints.length === 0) {
+    if (inputPoints.length === 0 || last) {
       inputPoints.push(pointer);
-      this.updateControlPoints();
-      return;
-    }
-
-    const firstProgressPoint = inProgressPoints[0];
-    const lastDetailPoint = inputPoints[inputPoints.length - 1];
-    // TODO: maybe we can change it from an array to just two Point, since we need only last and first
-    const distanceFromLastDetailPoint = getDistance(lastDetailPoint, pointer);
-
-    if (last) {
-      this.previewNextPoint = null;
-      this.updateControlPoints();
-    } else if (distanceFromLastDetailPoint > 0) {
-      this.previewNextPoint = pointer;
-      this.updateControlPoints();
-    }
-
-    if (last && distanceFromLastDetailPoint > 5) {
-      // just to do not overlap
-      // this is last added point, because mouse is up now
-
-      const deviationFromTheDirection = firstProgressPoint
-        ? distancePointToLine(pointer, lastDetailPoint, firstProgressPoint)
-        : 0;
-
-      if (deviationFromTheDirection < 5) {
-        // 99.99% times goes this way
-        inputPoints[inputPoints.length - 1] = pointer;
-        // the result should be same, and we won't get tow point almost overlapping(what created weird ending in the brush)
-      } else {
-        inputPoints.push(pointer);
+      this.draftPoint = null;
+      if (last) {
+        this.updateControlPoints();
       }
-      this.updateControlPoints();
-      return;
+      return; // no rerender, no draftPoint update
     }
 
-    if (distanceFromLastDetailPoint < 10) return;
-
-    if (inProgressPoints.length === 0) {
-      inProgressPoints.push(pointer);
-      this.updateControlPoints();
-      return;
+    const lastInput = inputPoints[inputPoints.length - 1];
+    if (
+      getDistance(lastInput, pointer) > 10 &&
+      (withinDirection === null || !withinDirection(pointer))
+    ) {
+      if (withinDirection && draftPoint) {
+        // draftPoint should be ALWAYS provided here, so it's just added because of TS
+        inputPoints.push(draftPoint);
+      }
+      this.withinDirection = (p: Point) =>
+        distancePointToLine(p, lastInput, pointer) < 5;
     }
 
-    const distanceFromFirstProgressPoint = getDistance(
-      firstProgressPoint,
-      pointer
-    );
-
-    if (distanceFromFirstProgressPoint < 5) {
-      // TODO: really? Are you sure? This about it again
-      // direction can be very random while distance < 5(position maybe didn't change even)
-      return;
-    }
-
-    const deviationFromTheDirection = distancePointToLine(
-      pointer,
-      lastDetailPoint,
-      firstProgressPoint
-    );
-
-    // we should write the last oen that was OKAY, and then continue inProgress with new point
-
-    if (deviationFromTheDirection > 5) {
-      // newest point has a different direction
-      const lastProgressPoint = inProgressPoints[inProgressPoints.length - 1]; // last one that was correct, since current "pointer" is not in same direction
-      inputPoints.push(lastProgressPoint);
-      // at this time we for sure have the start and the end of the path, I bet that's why we use empty array
-      this.inProgressPoints = []; // pointer should be 50px far from
-      // this.inProgressPoints = [{ x, y }];
-    } else {
-      // new point is at the same direction
-      inProgressPoints.push(pointer);
-    }
-
+    this.draftPoint = pointer;
     this.updateControlPoints();
   }
 
   private updateControlPoints() {
-    // if (this.previewNextPoint) {
-    //   fullPointsList.push(this.previewNextPoint);
-    // }
     const pointsAsArray = this.inputPoints.map((p) => [p.x, p.y]);
-    const fitted = fitCurve(pointsAsArray, this.simplificationFactor, () => {});
+
+    if (this.draftPoint) {
+      pointsAsArray.push([this.draftPoint.x, this.draftPoint.y]);
+    }
+
+    const fitted = fitCurve(
+      pointsAsArray,
+      this.draftPoint ? 10 : SIMPLIFICATION_FACTOR
+    );
     if (fitted.length === 0) return;
 
     this.segments = fitted.map<Segment>((bezierCurve) => {
@@ -231,11 +173,6 @@ export default class State {
 
     this.refresh();
   }
-
-  public simplifySpline = (progress: number) => {
-    this.simplificationFactor = Math.pow(progress, 5) * 500;
-    this.updateControlPoints();
-  };
 
   public playVideo = () => {
     this.video.play(this.currTime);
@@ -255,7 +192,6 @@ export default class State {
   public toggleBrushMode = () => {
     if (this.brushMode) {
       this.brushMode = false;
-      // this.updateAllWidthPoints();
       return;
     }
 

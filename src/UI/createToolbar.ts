@@ -44,16 +44,6 @@ export default function createToolbar(state: State) {
   brushBtn.innerHTML = brushSvg;
   brushBtn.addEventListener("click", state.toggleBrushMode);
 
-  const slider = document.createElement("input");
-  slider.setAttribute("min", "0");
-  slider.setAttribute("max", "1000");
-  slider.setAttribute("value", "0");
-  slider.setAttribute("type", "range");
-
-  slider.addEventListener("input", function (e) {
-    state.simplifySpline(Number(this.value) / 1000);
-  });
-
   // const updateHTML = () => {
   //   panelNode.classList[isPanelOpen ? "remove" : "add"]("visible");
   // };
@@ -82,7 +72,6 @@ export default function createToolbar(state: State) {
   root.appendChild(playBtn);
   root.appendChild(pauseBtn);
   root.appendChild(brushBtn);
-  root.appendChild(slider);
 
   return root;
 }

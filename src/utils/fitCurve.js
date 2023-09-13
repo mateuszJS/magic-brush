@@ -17,7 +17,7 @@
  * @returns {Array<Array<Array<Number>>>} Array of Bezier curves, where each element is [first-point, control-point-1, control-point-2, second-point] and points are [x, y]
  */
 
-export default function fitCurve(points, maxError, progressCallback) {
+export default function fitCurve(points, maxError) {
   if (points.length < 2) {
     return [];
   }
@@ -30,8 +30,8 @@ export default function fitCurve(points, maxError, progressCallback) {
     points,
     leftTangent,
     rightTangent,
-    maxError,
-    progressCallback
+    maxError
+    // progressCallback
   );
 }
 

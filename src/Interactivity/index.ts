@@ -13,7 +13,7 @@ const THICKNESS_SIZE_CONTROLS = 10;
 const NO_SELECTION = [0, 0, 0, 0];
 
 function getWidthsFootprintFromState(state: State) {
-  return `${state.simplificationFactor} ${state.segments.length}`;
+  return `${state.segments.length}`; // before it was also error threshold/simplification/fitting factor
 }
 
 export default class Interactivity {
