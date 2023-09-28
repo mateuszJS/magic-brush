@@ -1,6 +1,6 @@
 import createToolbar, { updateToolbar } from "./createToolbar";
 import addGrabbing from "./addGrabbing";
-import { MS_PER_PIXEL, isMobile } from "consts";
+import { MS_PER_PIXEL, isMobile, isTouchCapable } from "consts";
 import State from "State";
 
 interface SkeletonSize {
@@ -115,7 +115,12 @@ export function initUI(state: State) {
     state.pauseVideo();
   });
 
-  if (!isMobile) {
+  if (!isTouchCapable) {
     addGrabbing(timelineSlider);
   }
+
+  const removeWidthPointBtn = document.createElement("button");
+  removeWidthPointBtn.classList.add("remove-width-point-btn");
+  removeWidthPointBtn.innerText = "(X)";
+  mainContainer.appendChild(removeWidthPointBtn);
 }

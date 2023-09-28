@@ -6,6 +6,7 @@ import { skeletonSize } from "UI";
 import m3 from "utils/m3";
 import { getAttrs } from "./getAttrs";
 import State from "State";
+import drawRect from "./drawRect";
 
 function getStartX(currTime: number) {
   const skeleton = skeletonSize.timeline;
@@ -81,18 +82,7 @@ export default class Timeline {
     gl.bindVertexArray(null);
 
     if (minisEnd < skeletonSize.timeline.width) {
-      gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(
-        minisEnd,
-        gl.drawingBufferHeight -
-          skeletonSize.timeline.y -
-          skeletonSize.timeline.height,
-        MINI_SIZE,
-        MINI_SIZE
-      );
-      gl.clearColor(0, 0, 0, 1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.disable(gl.SCISSOR_TEST);
+      drawRect(minisEnd, skeletonSize.timeline.y - 1, MINI_SIZE, MINI_SIZE + 2);
     }
   }
 }

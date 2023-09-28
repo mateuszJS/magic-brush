@@ -2,12 +2,12 @@ import "./styles/index.scss";
 import { initUI, updateTimelineScroll } from "UI";
 import { calcMatrix } from "programs/canvasMatrix";
 import resizeCanvas from "utils/resizeCanvas";
-import Timeline from "Timeline";
-import Preview from "Preview";
-import Interactivity from "Interactivity";
-import Effects from "Effects";
+import Timeline from "components/Timeline";
+import Preview from "components/Preview";
+import Interactivity from "components/Interactivity";
+import Effects from "components/Effects";
 import State from "State";
-import CurveSkeleton from "CurveSkeleton";
+import CurveSkeleton from "components/CurveSkeleton";
 
 function runCreator(state: State) {
   const effects = new Effects();

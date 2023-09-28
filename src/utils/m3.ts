@@ -172,7 +172,7 @@ function degToRad(d: number) {
   return (d * Math.PI) / 180;
 }
 
-function transformPoint(m: Mat3, v: Mat3) {
+function transformPoint(m: Mat3, v: [number, number]) {
   var v0 = v[0];
   var v1 = v[1];
   var d = v0 * m[0 * 3 + 2] + v1 * m[1 * 3 + 2] + m[2 * 3 + 2];

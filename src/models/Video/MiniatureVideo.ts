@@ -1,6 +1,6 @@
 import Texture from "models/Texture";
 import { MINI_SIZE, MS_PER_PIXEL, isMobile } from "consts";
-import { getPreviewVideoSize } from "Preview";
+import { getPreviewVideoSize } from "components/Preview";
 
 const MS_LIMIT_STUCK = 1000;
 

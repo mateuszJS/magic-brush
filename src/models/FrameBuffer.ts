@@ -18,6 +18,8 @@ export default class FrameBuffer {
     }
 
     this.frameBufferLocation = newFrameBuffer;
+
+    this.texture.bind(0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBufferLocation);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
@@ -26,6 +28,14 @@ export default class FrameBuffer {
       this.texture.texture,
       0 // level
     );
+
+    // Uncomment if you want to check if rendering process ended successfully
+    // const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    // console.log(
+    //   "Frame buffer class",
+    //   status,
+    //   status == gl.FRAMEBUFFER_COMPLETE
+    // );
   }
 
   resize(width: number, height: number) {

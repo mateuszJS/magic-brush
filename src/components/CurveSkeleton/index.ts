@@ -1,9 +1,8 @@
-import { drawCircle, drawLine, drawPoints, simpleDrawBezier } from "programs";
+import { drawCircle, drawLine, simpleDrawBezier } from "programs";
 import setupRenderTarget from "renders/setupRenderTarget";
 import { canvasMatrix } from "programs/canvasMatrix";
-import State from "State";
+import State, { Segment } from "State";
 import SimpleDrawBezier from "programs/SimpleDrawBezier";
-import computeControlPoints from "utils/computeControlPoints";
 import DrawCircle from "programs/DrawCircle";
 
 const ITER = 10;
@@ -17,37 +16,30 @@ export default class CurveSkeleton {
     this.circleVao = drawCircle.createVAO(5);
   }
 
-  private renderSpline(points: Point[], color: vec4) {
+  private renderSpline(spline: Segment[], color: vec4) {
     const gl = window.gl;
 
-    let circlePos: number[] = [];
-    let circleColor: number[] = [];
+    const circlePos: number[] = [];
+    const circleColor: number[] = [];
     const lines: [Point, Point][] = [];
     const linesColor: vec4[] = [];
-    setupRenderTarget(null);
-    for (let i = 0; i + 2 < points.length - 1; i += 3) {
-      const p1 = points[i + 0];
-      const p2 = points[i + 1];
-      const p3 = points[i + 2];
-      const p4 = points[i + 3];
 
-      simpleDrawBezier.setup(this.vao, canvasMatrix, p1, p2, p3, p4, color);
+    setupRenderTarget(null);
+
+    spline.forEach((segment) => {
+      const [p1, p2, p3, p4] = segment.controlPoints;
+
+      simpleDrawBezier.setup(
+        this.vao,
+        canvasMatrix,
+        ...segment.controlPoints,
+        color
+      );
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, ITER);
       gl.bindVertexArray(null);
 
-      circlePos = [
-        ...circlePos,
-        p1.x,
-        p1.y,
-        p2.x,
-        p2.y,
-        p3.x,
-        p3.y,
-        p4.x,
-        p4.y,
-      ];
-      circleColor = [
-        ...circleColor, //
+      circlePos.push(...segment.controlPoints.flatMap((p) => [p.x, p.y]));
+      circleColor.push(
         0,
         0,
         0,
@@ -63,14 +55,14 @@ export default class CurveSkeleton {
         0,
         0,
         0,
-        1, //
-      ];
+        1 //
+      );
 
       lines.push([p1, p2]);
       lines.push([p4, p3]);
       linesColor.push([0, 1, 0, 1]);
       linesColor.push([1, 0, 1, 1]);
-    }
+    });
 
     lines.forEach(([p1, p2], index) => {
       drawLine.setup(canvasMatrix, p1, p2, linesColor[index], [1, 1, 1, 1]);
@@ -91,9 +83,9 @@ export default class CurveSkeleton {
   }
 
   public render(state: State) {
-    if (state.simplePath.length >= 2) {
+    if (state.segments.length > 0) {
       setupRenderTarget(null);
-      this.renderSpline(state.simplePath, [0.3, 0.3, 1, 0.5]);
+      this.renderSpline(state.segments, [0.3, 0.3, 1, 0.5]);
     }
   }
 }
