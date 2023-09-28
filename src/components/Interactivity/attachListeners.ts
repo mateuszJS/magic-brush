@@ -9,8 +9,7 @@ export default function attachListeners(
   onPointerMove: (pointer: Point) => void,
   onPointerUp: (pointer: Point) => void
 ) {
-  const preview = document.querySelector<HTMLElement>(".preview");
-  if (!preview) throw Error("No preview node!");
+  const preview = document.querySelector<HTMLElement>(".preview")!;
 
   // we assume that canvas is places in very top left corner, no offset
   // so we do not have to subtract left top corner of the listening node

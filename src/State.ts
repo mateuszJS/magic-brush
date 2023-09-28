@@ -34,6 +34,7 @@ export default class State {
   public widthPoints: WidthPoint[];
   private draftPoint: Point | null;
   private withinDirection: null | ((p: Point) => boolean);
+  public segmentsUpdate: number; // helper flag, so we don't need to deeply compare segments to know if rerender is needed
 
   constructor(videoUrl: string, onVideoLoaded: (state: State) => void) {
     this.currTime = 0;
@@ -47,6 +48,7 @@ export default class State {
     ];
     this.draftPoint = null; // maybe it can be connected with preview point?
     this.withinDirection = null;
+    this.segmentsUpdate = 0;
 
     const onLoadVideo = (video: MiniatureVideo) => {
       onVideoLoaded(this);
@@ -92,6 +94,13 @@ export default class State {
     return this.widthPoints.indexOf(newWidthPoint);
   }
 
+  public removeWidthPoint(index: number) {
+    this.widthPoints = this.widthPoints.filter(
+      (_, pointIndex) => pointIndex !== index
+    );
+    this.refresh();
+  }
+
   public updateWidthPoint(
     index: number,
     segmentProgress: number,
@@ -104,6 +113,7 @@ export default class State {
 
   public getPosAndTan(progress: number) {
     // progress measured in segments
+
     const segmentIndex = Math.floor(progress);
     const [safeSegmentIndex, t] =
       segmentIndex === this.segments.length // progress at the very end of the path is equal this.segments.length

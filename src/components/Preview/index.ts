@@ -115,7 +115,7 @@ export default class Preview {
       return;
     }
 
-    const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75;
+    const speedThreshold = Math.abs(state.currTime - this.prevTime) * 8.75; // it doesn't make sense, it's always 0
     const threshold = Math.min(100, speedThreshold);
 
     const closestCachedTime =

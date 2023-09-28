@@ -118,4 +118,9 @@ export function initUI(state: State) {
   if (!isTouchCapable) {
     addGrabbing(timelineSlider);
   }
+
+  const removeWidthPointBtn = document.createElement("button");
+  removeWidthPointBtn.classList.add("remove-width-point-btn");
+  removeWidthPointBtn.innerText = "(X)";
+  mainContainer.appendChild(removeWidthPointBtn);
 }
